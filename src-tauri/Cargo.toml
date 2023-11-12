@@ -16,6 +16,13 @@ tauri-build = { version = "1.5", features = [] }
 tauri = { version = "1.5", features = ["shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+http = "0.2"
+image = "0.24"
+imagepipe = "0.5.0"
+jpeg-encoder = { version = "0.6", features = ["simd"] }
+
+[patch.crates-io]
+rawloader = { path = "../../rawloader" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
