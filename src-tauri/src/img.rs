@@ -2,11 +2,11 @@ use anyhow::{anyhow, Context};
 use glob::{glob_with, MatchOptions};
 use serde::Serialize;
 use std::{
-    fs::{create_dir, create_dir_all, metadata},
+    fs::{create_dir_all, metadata},
     os::windows::process::CommandExt,
     path::{Path, PathBuf},
     process::Command,
-    time::{Instant, SystemTime},
+    time::SystemTime,
 };
 
 #[derive(Clone, Serialize)]
@@ -23,13 +23,13 @@ pub(crate) fn get_raw_img_paths(path: &Path) -> anyhow::Result<Vec<RawImg>> {
         .ok_or_else(|| anyhow::anyhow!("path is not valid UTF8"))?;
 
     glob_with(
-        &glob_pattern,
+        glob_pattern,
         MatchOptions {
             case_sensitive: false,
             ..Default::default()
         },
     )?
-    .map(|p| {
+    .filter_map(|p| {
         p.ok().map(|p| {
             Ok(RawImg {
                 path: p.clone(),
@@ -38,7 +38,6 @@ pub(crate) fn get_raw_img_paths(path: &Path) -> anyhow::Result<Vec<RawImg>> {
             })
         })
     })
-    .filter_map(|x| x)
     .collect()
 }
 

@@ -3,13 +3,9 @@
 
 use img::RawImg;
 use lazy_static::lazy_static;
-use rayon::{prelude::*, ThreadPool, ThreadPoolBuilder};
-use std::fs;
-use std::thread::available_parallelism;
-use std::time::Instant;
-use std::{num::NonZeroUsize, sync::mpsc};
-use tauri::api::dialog;
-use tauri::http::ResponseBuilder;
+use rayon::{ThreadPool, ThreadPoolBuilder};
+use std::{fs, num::NonZeroUsize, thread::available_parallelism};
+use tauri::{api::dialog, http::ResponseBuilder};
 use url::Url;
 
 use crate::img::{create_preview, get_raw_img_paths};
@@ -72,12 +68,9 @@ fn cull_dir(window: tauri::Window) -> Result<Vec<RawImg>, String> {
 }
 
 fn main() {
-    // let path = "C:/Projects/gallery/temp/cull_cache/DSC05362.ARW";
-
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![cull_dir])
-        // todo: make the scheme just img?
-        .register_uri_scheme_protocol("preview", move |app, request| {
+        .register_uri_scheme_protocol("preview", move |_app, request| {
             if request.method().as_str() != http::Method::GET {
                 return ResponseBuilder::new()
                     .status(http::StatusCode::METHOD_NOT_ALLOWED.as_u16())
@@ -95,11 +88,7 @@ fn main() {
                     .body(Vec::new()),
             }
 
-            // todo: get path - 400
-
             // todo: check path - 404 or somehow wait for the preview - ideally somehow use a future?
-
-            // todo: serve img
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
