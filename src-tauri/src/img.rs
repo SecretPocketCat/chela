@@ -31,10 +31,11 @@ pub(crate) fn get_raw_img_paths(path: &Path) -> anyhow::Result<Vec<RawImg>> {
     )?
     .filter_map(|p| {
         p.ok().map(|p| {
+            let meta = metadata(&p)?;
             Ok(RawImg {
-                path: p.clone(),
                 preview_path: get_preview_path(&p).ok_or(anyhow!("Failed to get preview path"))?,
-                created: metadata(p)?.created()?,
+                path: p,
+                created: meta.created()?.min(meta.modified()?),
             })
         })
     })
@@ -53,21 +54,17 @@ pub(crate) fn create_preview(raw_img: RawImg) -> anyhow::Result<()> {
             create_dir_all(dir)?;
         }
 
-        // todo: compare how long webp and avif take?
         Command::new("magick")
             .raw_arg(format!(
                 "\"{}\"",
                 raw_img
                     .path
                     .to_str()
-                    .ok_or(anyhow!("Invalid raw img path"))?
+                    .ok_or(anyhow!("Invalid raw img path {:?}", raw_img.path))?
             ))
-            .arg("-quality")
-            .arg(75.to_string())
             .arg("-auto-orient")
             .arg("-resize")
             .arg("2000x1400>")
-            // todo: check whether making it single-threaded makes a difference
             .arg("-limit")
             .arg("thread")
             .arg(1.to_string())
@@ -79,14 +76,17 @@ pub(crate) fn create_preview(raw_img: RawImg) -> anyhow::Result<()> {
                     .ok_or(anyhow!("Invalid preview path"))?
             ))
             .status()
-            .context("Failed to generate jpg")?;
+            .context(format!(
+                "Failed to generate preview {:?}",
+                raw_img.preview_path
+            ))?;
     }
 
     Ok(())
 }
 
 fn get_preview_path(path: &Path) -> Option<PathBuf> {
-    let mut preview_path = path.with_extension("jpg");
+    let mut preview_path = path.with_extension("webp");
     let filename = preview_path.file_name()?.to_owned();
     preview_path.pop();
     preview_path.push("_preview");
