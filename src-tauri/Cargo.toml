@@ -20,7 +20,9 @@ rayon = "1.8"
 lazy_static = "1.4.0"
 url = "2.4"
 tokio = { version = "1.34", features = ["sync", "macros"] }
-num_cpus = "1.16.0"
+num_cpus = "1.16"
+axum = { version = "0.6", features = ["http2", "macros"] }
+hyper = "0.14"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
