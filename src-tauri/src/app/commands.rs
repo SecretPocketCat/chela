@@ -28,7 +28,7 @@ pub(super) async fn cull_dir(
             let mut paths = get_raw_images(&p).map_err(|_| "Failed to get raw paths".to_owned())?;
 
             // sort by creation
-            paths.sort_by(|a, b| a.created.cmp(&b.created));
+            paths.sort_by(|a, b| b.created.cmp(&a.created));
 
             let mut previews = app_state.previews().write().await;
             previews.clear();
