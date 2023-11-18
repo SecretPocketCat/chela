@@ -1,5 +1,7 @@
+use tokio::sync::RwLock;
+
 use super::state::AppState;
-use crate::image::{get_raw_images, PreviewGenStatus, RawImage};
+use crate::image::{get_raw_images, RawImage};
 
 // the cmd has to be is async to start on a different thread
 // blocking file dalog would otherwise block main thread
@@ -28,16 +30,16 @@ pub(super) async fn cull_dir(
             // sort by creation
             paths.sort_by(|a, b| a.created.cmp(&b.created));
 
-            let mut previews = app_state.previews().lock().await;
+            let mut previews = app_state.previews().write().await;
             previews.clear();
             previews.extend(paths.iter().map(|img| {
                 (
                     img.preview_path.clone(),
-                    if img.preview_path.exists() {
-                        PreviewGenStatus::Generated
+                    RwLock::new(if img.preview_path.exists() {
+                        None
                     } else {
-                        PreviewGenStatus::Processing(tokio::sync::Notify::new())
-                    },
+                        Some(tokio::sync::Notify::new())
+                    }),
                 )
             }));
 

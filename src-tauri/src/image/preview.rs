@@ -2,20 +2,14 @@ use super::raw::RawImage;
 use anyhow::{anyhow, Context};
 use std::{
     collections::HashMap, fs::create_dir_all, os::windows::process::CommandExt, path::PathBuf,
-    process::Command, sync::Arc,
+    process::Command, sync::Arc, thread, time::Duration,
 };
 use tokio::sync::Notify;
 
-pub(crate) type PreviewMap = Arc<tokio::sync::Mutex<HashMap<PathBuf, PreviewGenStatus>>>;
+pub(crate) type PreviewMap =
+    Arc<tokio::sync::RwLock<HashMap<PathBuf, tokio::sync::RwLock<Option<Notify>>>>>;
 
-pub(crate) enum PreviewGenStatus {
-    Generated,
-    // todo: Notify comes from tokio and could be used to await completion
-    // when a processing preview is requested
-    // https://docs.rs/tokio/latest/tokio/sync/struct.Notify.html
-    Processing(Notify),
-}
-
+// todo: don't take ownership of ram image - maybe just take &Path s for raw & preview?
 pub(crate) fn create_preview(raw_img: RawImage) -> anyhow::Result<()> {
     if !raw_img.preview_path.exists() {
         let dir = raw_img
@@ -60,7 +54,8 @@ pub(crate) fn create_preview(raw_img: RawImage) -> anyhow::Result<()> {
 
 pub(crate) async fn process_previews(
     mut input_rx: tokio::sync::mpsc::Receiver<Vec<RawImage>>,
-) -> Result<(), anyhow::Error> {
+    previews: PreviewMap,
+) -> anyhow::Result<()> {
     // leave 3 cores available
     let thread_count = (num_cpus::get_physical() - 3).max(1);
     let thread_pool = rayon::ThreadPoolBuilder::new()
@@ -69,14 +64,43 @@ pub(crate) async fn process_previews(
 
     while let Some(mut imgs) = input_rx.recv().await {
         // also should just use a part of cores, not all to allow the PC to be usable
-        thread_pool.scope_fifo(|x| {
+        thread_pool.scope_fifo(|scope| {
             while let Some(img) = imgs.pop() {
-                x.spawn_fifo(move |_| {
+                let previews = Arc::clone(&previews);
+                scope.spawn_fifo(move |_| {
+                    let path: PathBuf = img.preview_path.clone();
+
+                    if !previews.blocking_read().contains_key(&path) {
+                        // the culled dir has changed
+                        // bail out early to stop the preview gen for the old dir
+                        return;
+                    }
+
                     // todo: handle err properly
                     create_preview(img).unwrap();
 
-                    // todo: this needs to notify all
-                    // and then change the state to generated
+                    if let Some(process_notification) = previews.blocking_read().get(&path) {
+                        // retry requiring the write guard to prevent deadlock if reads come
+                        // before getting the write guard but after notifying current readers
+                        loop {
+                            match process_notification.try_write() {
+                                Ok(mut notify) => {
+                                    // mark as processed
+                                    notify.take();
+                                    break;
+                                }
+                                Err(_) => {
+                                    // notify ongoing readers the preview is ready
+                                    if let Some(notify) =
+                                        process_notification.blocking_read().as_ref()
+                                    {
+                                        notify.notify_waiters();
+                                        thread::sleep(Duration::from_millis(10));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 });
             }
         });

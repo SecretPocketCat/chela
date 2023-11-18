@@ -12,7 +12,7 @@ pub(crate) fn run_app() -> tauri::Result<()> {
     // todo: create an mpsc which will be used to assign work/generate previews?
     // https://docs.rs/tokio/latest/tokio/sync/mpsc/index.html
     let (preview_processing_tx, preview_processing_rx) = tokio::sync::mpsc::channel(1);
-    let previews = Arc::new(tokio::sync::Mutex::new(HashMap::with_capacity(500)));
+    let previews = Arc::new(tokio::sync::RwLock::new(HashMap::with_capacity(500)));
 
     tauri::Builder::default()
         .manage(state::AppState::new(
@@ -43,8 +43,9 @@ pub(crate) fn run_app() -> tauri::Result<()> {
         // })
         .setup(|_app| {
             // preview processing
+            let p = Arc::clone(&previews);
             tauri::async_runtime::spawn(
-                async move { process_previews(preview_processing_rx).await },
+                async move { process_previews(preview_processing_rx, p).await },
             );
 
             // preview API
