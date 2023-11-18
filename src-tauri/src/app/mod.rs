@@ -1,5 +1,7 @@
-use crate::{image::process_previews, preview_api};
-use std::{collections::HashMap, sync::Arc};
+use tauri::Manager;
+
+use crate::{app::state::AppState, image::process_previews, preview_api};
+use std::{borrow::BorrowMut, collections::HashMap, sync::Arc};
 
 mod commands;
 mod state;
@@ -15,11 +17,10 @@ pub(crate) fn run_app() -> tauri::Result<()> {
     let previews = Arc::new(tokio::sync::RwLock::new(HashMap::with_capacity(500)));
 
     tauri::Builder::default()
-        .manage(state::AppState::new(
-            Arc::clone(&previews),
-            preview_processing_tx,
-        ))
-        .invoke_handler(tauri::generate_handler![commands::cull_dir])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_config,
+            commands::cull_dir
+        ])
         // .register_uri_scheme_protocol("preview", move |_app, request| {
         //     if request.method().as_str() != http::Method::GET {
         //         return ResponseBuilder::new()
@@ -41,7 +42,7 @@ pub(crate) fn run_app() -> tauri::Result<()> {
         //     }
         //     // todo: check path - 404 or somehow wait for the preview - ideally somehow use a future?
         // })
-        .setup(|_app| {
+        .setup(|app| {
             // preview processing
             let p = Arc::clone(&previews);
             tauri::async_runtime::spawn(
@@ -49,15 +50,22 @@ pub(crate) fn run_app() -> tauri::Result<()> {
             );
 
             // preview API
+            let app_handle = app.handle();
             tauri::async_runtime::spawn(async move {
                 // // todo: need to access the state - does that have to be arc?
 
-                let preview_server = preview_api::get_preview_api_server(previews);
+                let preview_server = preview_api::get_preview_api_server(Arc::clone(&previews));
 
                 println!(
                     "Preview API: http://localhost:{}",
                     preview_server.local_addr().port()
                 );
+
+                app_handle.manage(state::AppState::new(
+                    Arc::clone(&previews),
+                    preview_processing_tx,
+                    preview_server.local_addr().to_string(),
+                ));
 
                 // todo: pass the preview api url to the tauri client
                 // _app.emit_all(event, payload)

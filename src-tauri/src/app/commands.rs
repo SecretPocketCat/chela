@@ -3,6 +3,18 @@ use tokio::sync::RwLock;
 use super::state::AppState;
 use crate::image::{get_raw_images, RawImage};
 
+#[derive(serde::Serialize)]
+pub(super) struct AppConfig {
+    preview_api_url: String,
+}
+
+#[tauri::command]
+pub(super) async fn get_config(app_state: tauri::State<'_, AppState>) -> Result<AppConfig, String> {
+    Ok(AppConfig {
+        preview_api_url: app_state.preview_api_url().to_owned(),
+    })
+}
+
 // the cmd has to be is async to start on a different thread
 // blocking file dalog would otherwise block main thread
 #[tauri::command]
