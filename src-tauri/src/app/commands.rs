@@ -1,9 +1,13 @@
 use tokio::sync::RwLock;
 
 use super::state::AppState;
-use crate::image::{get_raw_images, RawImage};
+use crate::image::{get_raw_images, Image};
+use serde::Serialize;
+use ts_rs::TS;
 
-#[derive(serde::Serialize)]
+#[derive(Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub(super) struct AppConfig {
     preview_api_url: String,
 }
@@ -21,7 +25,7 @@ pub(super) async fn get_config(app_state: tauri::State<'_, AppState>) -> Result<
 pub(super) async fn cull_dir(
     window: tauri::Window,
     app_state: tauri::State<'_, AppState>,
-) -> Result<Vec<RawImage>, String> {
+) -> Result<Vec<Image>, String> {
     let dir = tauri::api::dialog::blocking::FileDialogBuilder::default()
         .set_title("Select culled folder")
         // set the parent to force focus on the dialog

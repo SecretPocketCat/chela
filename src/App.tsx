@@ -2,24 +2,24 @@ import { useEffect, useState as useFootGun } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import { invoke } from "@tauri-apps/api/tauri";
 import { mod } from "./math";
+import { AppConfig } from "../src-tauri/bindings/AppConfig";
+import { Image } from "../src-tauri/bindings/Image";
 
 function App() {
-  const [photos, setPhotos] = useFootGun<any[]>();
+  const [photos, setPhotos] = useFootGun<Image[]>();
   const [photoIndex, setPhotoIndex] = useFootGun<number>();
   const [previewUrl, setPreviewUrl] = useFootGun<string>();
 
   async function cullDir() {
-    const culledPhotos = await invoke<any[]>("cull_dir");
+    const culledPhotos = await invoke<Image[]>("cull_dir");
     setPhotos(culledPhotos);
     setPhotoIndex(0);
-    console.warn(culledPhotos);
   }
 
   function getPhotoUrl(index: number) {
-    console.warn("index", getPhotoIndex(index));
     return previewUrl && photos
       ? `http://${previewUrl}/preview?path=${encodeURIComponent(
-          photos[getPhotoIndex(index)].preview_path
+          photos[getPhotoIndex(index)].previewPath
         )}`
       : undefined;
   }
@@ -59,8 +59,6 @@ function App() {
       ev.preventDefault();
       prevPhoto();
     }
-
-    console.warn(ev.code);
   }
 
   useEffect(() => {
@@ -71,11 +69,9 @@ function App() {
     };
   });
 
-  // todo: this reruns on every render - redo
   useAsyncEffect(async () => {
-    const conf = await invoke<any>("get_config");
-    console.warn("conf", conf);
-    setPreviewUrl(conf.preview_api_url);
+    const conf = await invoke<AppConfig>("get_config");
+    setPreviewUrl(conf.previewApiUrl);
   }, []);
 
   return (

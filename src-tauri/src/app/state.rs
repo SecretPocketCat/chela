@@ -1,15 +1,15 @@
-use crate::image::{PreviewMap, RawImage};
+use crate::image::{Image, PreviewMap};
 
 pub(super) struct AppState {
     previews: PreviewMap,
-    gen_previews_tx: tokio::sync::Mutex<tokio::sync::mpsc::Sender<Vec<RawImage>>>,
+    gen_previews_tx: tokio::sync::Mutex<tokio::sync::mpsc::Sender<Vec<Image>>>,
     preview_api_url: String,
 }
 
 impl AppState {
     pub fn new(
         previews: PreviewMap,
-        gen_previews_tx: tokio::sync::mpsc::Sender<Vec<RawImage>>,
+        gen_previews_tx: tokio::sync::mpsc::Sender<Vec<Image>>,
         preview_api_url: String,
     ) -> Self {
         Self {
@@ -25,7 +25,7 @@ impl AppState {
 
     pub(super) fn gen_previews_tx(
         &self,
-    ) -> &tokio::sync::Mutex<tokio::sync::mpsc::Sender<Vec<RawImage>>> {
+    ) -> &tokio::sync::Mutex<tokio::sync::mpsc::Sender<Vec<Image>>> {
         &self.gen_previews_tx
     }
 

@@ -1,20 +1,13 @@
 use anyhow::anyhow;
-use chrono::prelude::*;
 use glob::{glob_with, MatchOptions};
-use serde::Serialize;
 use std::{
     fs::metadata,
     path::{Path, PathBuf},
 };
 
-#[derive(Clone, Serialize)]
-pub(crate) struct RawImage {
-    pub(crate) path: PathBuf,
-    pub(crate) preview_path: PathBuf,
-    pub(crate) created: DateTime<Utc>,
-}
+use super::Image;
 
-pub(crate) fn get_raw_images(path: &Path) -> anyhow::Result<Vec<RawImage>> {
+pub(crate) fn get_raw_images(path: &Path) -> anyhow::Result<Vec<Image>> {
     let glob_pattern = path.join("*.arw");
     let glob_pattern = glob_pattern
         .to_str()
@@ -31,7 +24,7 @@ pub(crate) fn get_raw_images(path: &Path) -> anyhow::Result<Vec<RawImage>> {
         p.ok().map(|p| {
             let meta = metadata(&p)?;
 
-            Ok(RawImage {
+            Ok(Image {
                 preview_path: get_preview_path(&p).ok_or(anyhow!("Failed to get preview path"))?,
                 path: p,
                 created: meta.created()?.min(meta.modified()?).into(),

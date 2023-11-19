@@ -1,4 +1,3 @@
-use super::raw::RawImage;
 use anyhow::{anyhow, Context};
 use std::{
     collections::HashMap, fs::create_dir_all, os::windows::process::CommandExt, path::PathBuf,
@@ -6,11 +5,13 @@ use std::{
 };
 use tokio::sync::Notify;
 
+use super::Image;
+
 pub(crate) type PreviewMap =
     Arc<tokio::sync::RwLock<HashMap<PathBuf, tokio::sync::RwLock<Option<Notify>>>>>;
 
 // todo: don't take ownership of ram image - maybe just take &Path s for raw & preview?
-pub(crate) fn create_preview(raw_img: RawImage) -> anyhow::Result<()> {
+pub(crate) fn create_preview(raw_img: Image) -> anyhow::Result<()> {
     if !raw_img.preview_path.exists() {
         let dir = raw_img
             .preview_path
@@ -53,7 +54,7 @@ pub(crate) fn create_preview(raw_img: RawImage) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn process_previews(
-    mut input_rx: tokio::sync::mpsc::Receiver<Vec<RawImage>>,
+    mut input_rx: tokio::sync::mpsc::Receiver<Vec<Image>>,
     previews: PreviewMap,
 ) -> anyhow::Result<()> {
     // leave 3 cores available
@@ -79,7 +80,7 @@ pub(crate) async fn process_previews(
                     }
 
                     create_preview(img)
-                        .expect(&format!("Preview {:?} has failed to generate", &path));
+                        .unwrap_or_else(|_| panic!("Preview {:?} has failed to generate", &path));
 
                     if let Some(process_notification) = previews.blocking_read().get(&path) {
                         // retry requiring the write guard to prevent deadlock if reads come
