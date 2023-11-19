@@ -1,14 +1,13 @@
 use crate::image::PreviewMap;
 use axum::{
-    body::StreamBody,
     extract::{Query, State},
     http::StatusCode,
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Response},
 };
 use serde::Deserialize;
-use std::{collections::hash_map, path::PathBuf};
-use tokio::fs::File;
-use tokio_util::io::ReaderStream;
+use std::{path::PathBuf};
+
+
 
 #[derive(Deserialize)]
 pub struct QueryParams {

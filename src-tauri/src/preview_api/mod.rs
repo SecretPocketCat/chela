@@ -6,7 +6,6 @@ use axum::{
 use hyper::server::conn::AddrIncoming;
 use std::net::SocketAddr;
 
-mod error;
 mod health;
 mod preview;
 mod state;
