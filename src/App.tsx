@@ -76,7 +76,7 @@ function App() {
     const conf = await invoke<any>("get_config");
     console.warn("conf", conf);
     setPreviewUrl(conf.preview_api_url);
-  });
+  }, []);
 
   return (
     <div className="flex gap-6">

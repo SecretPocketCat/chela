@@ -78,8 +78,8 @@ pub(crate) async fn process_previews(
                         return;
                     }
 
-                    // todo: handle err properly
-                    create_preview(img).unwrap();
+                    create_preview(img)
+                        .expect(&format!("Preview {:?} has failed to generate", &path));
 
                     if let Some(process_notification) = previews.blocking_read().get(&path) {
                         // retry requiring the write guard to prevent deadlock if reads come
