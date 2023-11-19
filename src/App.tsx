@@ -1,6 +1,7 @@
 import { useEffect, useState as useFootGun } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import { invoke } from "@tauri-apps/api/tauri";
+import { mod } from "./math";
 
 function App() {
   const [photos, setPhotos] = useFootGun<any[]>();
@@ -11,19 +12,26 @@ function App() {
     const culledPhotos = await invoke<any[]>("cull_dir");
     setPhotos(culledPhotos);
     setPhotoIndex(0);
+    console.warn(culledPhotos);
   }
 
   function getPhotoUrl(index: number) {
+    console.warn("index", getPhotoIndex(index));
     return previewUrl && photos
       ? `http://${previewUrl}/preview?path=${encodeURIComponent(
-          photos[index].preview_path
+          photos[getPhotoIndex(index)].preview_path
         )}`
       : undefined;
   }
 
+  function getPhotoIndex(index: number) {
+    return mod(index, photos?.length || 1);
+  }
+
   function movePhotoIndex(offset: number) {
-    // todo: modulo
-    setPhotoIndex((photoIndex ?? 0) + offset);
+    if (photos) {
+      setPhotoIndex(mod((photoIndex ?? 0) + offset, photos.length));
+    }
   }
 
   function nextPhoto() {
@@ -63,6 +71,7 @@ function App() {
     };
   });
 
+  // todo: this reruns on every render - redo
   useAsyncEffect(async () => {
     const conf = await invoke<any>("get_config");
     console.warn("conf", conf);
@@ -73,8 +82,14 @@ function App() {
     <div className="flex gap-6">
       {photoIndex !== undefined ? (
         <>
-          <img src={getPhotoUrl(photoIndex)} className="object-contain" />
-          <img src={getPhotoUrl(photoIndex + 1)} className="object-contain" />
+          <img
+            src={getPhotoUrl(photoIndex)}
+            className="object-contain max-h-[95vh]"
+          />
+          <img
+            src={getPhotoUrl(photoIndex + 1)}
+            className="object-contain  max-h-[95vh]"
+          />
         </>
       ) : undefined}
 
