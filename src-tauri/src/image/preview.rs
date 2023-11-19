@@ -65,6 +65,8 @@ pub(crate) async fn process_previews(
     while let Some(mut imgs) = input_rx.recv().await {
         // also should just use a part of cores, not all to allow the PC to be usable
         thread_pool.scope_fifo(|scope| {
+            imgs.reverse();
+
             while let Some(img) = imgs.pop() {
                 let previews = Arc::clone(&previews);
                 scope.spawn_fifo(move |_| {

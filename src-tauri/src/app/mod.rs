@@ -26,8 +26,6 @@ pub(crate) fn run_app() -> tauri::Result<()> {
             // preview API
             let app_handle = app.handle();
             tauri::async_runtime::spawn(async move {
-                // // todo: need to access the state - does that have to be arc?
-
                 let preview_server = preview_api::get_preview_api_server(Arc::clone(&previews));
 
                 println!(

@@ -16,7 +16,6 @@ pub(crate) fn get_preview_api_server(
     let app = Router::new()
         .route("/", get(health::health))
         .route("/preview", get(preview::preview))
-        // todo: the actual preview endpoint
         .with_state(state::PreviewApiState::new(previews));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 0));

@@ -40,8 +40,9 @@ pub(super) async fn cull_dir(
             let mut paths = get_raw_images(&p).map_err(|_| "Failed to get raw paths".to_owned())?;
 
             // sort by creation
-            paths.sort_by(|a, b| b.created.cmp(&a.created));
+            paths.sort_by(|a, b| a.created.cmp(&b.created));
 
+            // reset current previews
             let mut previews = app_state.previews().write().await;
             previews.clear();
             previews.extend(paths.iter().map(|img| {
@@ -63,9 +64,6 @@ pub(super) async fn cull_dir(
                 .send(paths.clone())
                 .await
                 .map_err(|e| e.to_string())?;
-
-            // the bg processing queue should emit an event so that the client can show rerender the img if it was loading before that
-            // also might wanna redo that to an axum server and store futures instead?
 
             Ok(paths)
         }
