@@ -21,7 +21,8 @@ export function PreviewImage({
     )}`;
   }
 
-  const [imgRef, { width: imgWidth, height: imgHeight }] = useMeasure();
+  const [imgRef, { width: imgWidth, height: imgHeight }] =
+    useMeasure<HTMLImageElement>();
 
   const stateColorClass = useMemo(() => {
     switch (image.state) {
@@ -63,7 +64,7 @@ export function PreviewImage({
 
   const flagClass = useMemo(() => {
     return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2  tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${getFlagStateClass()}`;
-  }, [borderClass, image]);
+  }, [borderClass, image.state]);
 
   function getFlagStateClass() {
     const sizeClass = "tw-w-12 tw-h-12";
