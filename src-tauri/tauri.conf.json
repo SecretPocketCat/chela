@@ -34,11 +34,12 @@
     },
     "windows": [
       {
-        "fullscreen": false,
-        "resizable": true,
-        "title": "chela",
-        "width": 800,
-        "height": 600
+        "resizable": false,
+        "x": 0,
+        "y": 0,
+        "width": 2740,
+        "height": 1070,
+        "title": "chela"
       }
     ]
   }
