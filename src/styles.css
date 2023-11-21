@@ -8,9 +8,6 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,11 +15,9 @@
   -webkit-text-size-adjust: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #e5e7eb;
-    background-color: #222;
-  }
+.chela--app {
+  color: #e5e7eb;
+  background-color: #222;
 }
 
 .chela--border-outset {

@@ -1,7 +1,13 @@
 use anyhow::{anyhow, Context};
 use std::{
-    collections::HashMap, fs::create_dir_all, os::windows::process::CommandExt, path::PathBuf,
-    process::Command, sync::Arc, thread, time::Duration,
+    collections::{HashMap, VecDeque},
+    fs::create_dir_all,
+    os::windows::process::CommandExt,
+    path::PathBuf,
+    process::Command,
+    sync::Arc,
+    thread,
+    time::Duration,
 };
 use tokio::sync::Notify;
 
@@ -54,7 +60,7 @@ pub(crate) fn create_preview(raw_img: Image) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn process_previews(
-    mut input_rx: tokio::sync::mpsc::Receiver<Vec<Image>>,
+    mut input_rx: tokio::sync::mpsc::Receiver<VecDeque<Image>>,
     previews: PreviewMap,
 ) -> anyhow::Result<()> {
     // leave 3 cores available
@@ -64,49 +70,53 @@ pub(crate) async fn process_previews(
         .build()?;
 
     while let Some(mut imgs) = input_rx.recv().await {
-        // also should just use a part of cores, not all to allow the PC to be usable
-        thread_pool.scope_fifo(|scope| {
-            imgs.reverse();
+        if let Some(first) = imgs.pop_back() {
+            // also should just use a part of cores, not all to allow the PC to be usable
+            thread_pool.scope_fifo(|scope| {
+                // start with the last image which will be previewed at the start
+                imgs.push_front(first);
 
-            while let Some(img) = imgs.pop() {
-                let previews = Arc::clone(&previews);
-                scope.spawn_fifo(move |_| {
-                    let path: PathBuf = img.preview_path.clone();
+                while let Some(img) = imgs.pop_front() {
+                    let previews = Arc::clone(&previews);
+                    scope.spawn_fifo(move |_| {
+                        let path: PathBuf = img.preview_path.clone();
 
-                    if !previews.blocking_read().contains_key(&path) {
-                        // the culled dir has changed
-                        // bail out early to stop the preview gen for the old dir
-                        return;
-                    }
+                        if !previews.blocking_read().contains_key(&path) {
+                            // the culled dir has changed
+                            // bail out early to stop the preview gen for the old dir
+                            return;
+                        }
 
-                    create_preview(img)
-                        .unwrap_or_else(|_| panic!("Preview {:?} has failed to generate", &path));
+                        create_preview(img).unwrap_or_else(|_| {
+                            panic!("Preview {:?} has failed to generate", &path)
+                        });
 
-                    if let Some(process_notification) = previews.blocking_read().get(&path) {
-                        // retry requiring the write guard to prevent deadlock if reads come
-                        // before getting the write guard but after notifying current readers
-                        loop {
-                            match process_notification.try_write() {
-                                Ok(mut notify) => {
-                                    // mark as processed
-                                    notify.take();
-                                    break;
-                                }
-                                Err(_) => {
-                                    // notify ongoing readers the preview is ready
-                                    if let Some(notify) =
-                                        process_notification.blocking_read().as_ref()
-                                    {
-                                        notify.notify_waiters();
-                                        thread::sleep(Duration::from_millis(10));
+                        if let Some(process_notification) = previews.blocking_read().get(&path) {
+                            // retry requiring the write guard to prevent deadlock if reads come
+                            // before getting the write guard but after notifying current readers
+                            loop {
+                                match process_notification.try_write() {
+                                    Ok(mut notify) => {
+                                        // mark as processed
+                                        notify.take();
+                                        break;
+                                    }
+                                    Err(_) => {
+                                        // notify ongoing readers the preview is ready
+                                        if let Some(notify) =
+                                            process_notification.blocking_read().as_ref()
+                                        {
+                                            notify.notify_waiters();
+                                            thread::sleep(Duration::from_millis(10));
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
+        }
     }
 
     Ok(())

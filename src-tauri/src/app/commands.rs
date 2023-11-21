@@ -69,7 +69,7 @@ pub(super) async fn cull_dir(
                 .gen_previews_tx()
                 .lock()
                 .await
-                .send(images.clone())
+                .send(images.clone().into())
                 .await
                 .map_err(|e| e.to_string())?;
 

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useMeasure } from "react-use";
-import { Image } from "../src-tauri/bindings/Image";
+import { Spinner } from "@chakra-ui/react";
+import { Image } from "../../src-tauri/bindings/Image";
 
 export function PreviewImage({
   active,
@@ -15,7 +16,7 @@ export function PreviewImage({
   thumbnail: boolean;
   className?: string;
 }) {
-  function getPhotoUrl() {
+  function getPreviewUrl() {
     return `http://${baseUrl}/preview?path=${encodeURIComponent(
       image.previewPath
     )}`;
@@ -46,11 +47,12 @@ export function PreviewImage({
     }
   }, [image.state]);
 
+  // todo: better size for thumbnails
   const wrapperClass = useMemo(() => {
     return `${className} tw-transition-all tw-relative tw-h-full tw-flex tw-items-center tw-justify-center tw-overflow-hidden tw-rounded-md ${
-      active ? "chela--stripy-bg" : ""
-    }`;
-  }, [className, active]);
+      active && !thumbnail ? "chela--stripy-bg" : ""
+    } ${thumbnail ? `tw-min-w-[100px]` : ""}`;
+  }, [className, active, thumbnail]);
 
   const borderClass = useMemo(() => {
     return `${stateBorderColorClass} ${
@@ -59,11 +61,11 @@ export function PreviewImage({
   }, [active, thumbnail, stateBorderColorClass]);
 
   const imgClass = useMemo(() => {
-    return `tw-transition-all tw-max-w-full tw-max-h-full tw-rounded-md ${borderClass}`;
+    return `tw-z-[1] tw-transition-all tw-max-w-full tw-max-h-full tw-rounded-md ${borderClass}`;
   }, [borderClass]);
 
   const flagClass = useMemo(() => {
-    return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2  tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${getFlagStateClass()}`;
+    return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2 tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${getFlagStateClass()}`;
   }, [borderClass, image.state]);
 
   function getFlagStateClass() {
@@ -79,15 +81,37 @@ export function PreviewImage({
     }
   }
 
+  function getSpinnerSize() {
+    return thumbnail ? 65 : 250;
+  }
+
   return (
     <div className={wrapperClass}>
-      <img ref={imgRef} src={getPhotoUrl()} className={imgClass} />
+      <img ref={imgRef} src={getPreviewUrl()} className={imgClass} />
 
       <div
         style={{ width: `${imgWidth}px`, height: `${imgHeight}px` }}
-        className="tw-absolute tw-overflow-hidden"
+        className="tw-absolute tw-overflow-hidden tw-flex tw-items-center tw-justify-center tw-z-[2]"
       >
         <div className={flagClass}></div>
+      </div>
+
+      <div
+        style={{
+          width: `${imgWidth || getSpinnerSize()}px`,
+          height: `${imgHeight || getSpinnerSize()}px`,
+        }}
+        className="tw-absolute tw-overflow-hidden tw-flex tw-items-center tw-justify-center"
+      >
+        <Spinner
+          color="gray.300"
+          opacity={thumbnail ? 0.5 : 0.8}
+          size={thumbnail ? "lg" : "xl"}
+          thickness={thumbnail ? "8px" : "20px"}
+          speed={`${0.55 + Math.random() * 0.15}s`}
+          height={getSpinnerSize()}
+          width={getSpinnerSize()}
+        />
       </div>
     </div>
   );
