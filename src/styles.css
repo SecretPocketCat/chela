@@ -29,6 +29,10 @@
   border-style: outset;
 }
 
+.chela--cull-layout {
+  grid-template-rows: minmax(0, 1fr) 10rem;
+}
+
 .chela--imgs-grid {
   grid-template-columns: 1fr 72rem 1fr;
 }

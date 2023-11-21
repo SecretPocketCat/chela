@@ -47,7 +47,7 @@ export function PreviewImage({
   }, [image.state]);
 
   const wrapperClass = useMemo(() => {
-    return `${className} tw-transition-all tw-relative tw-w-full tw-h-full tw-flex tw-items-center tw-justify-center tw-overflow-hidden tw-rounded-md ${
+    return `${className} tw-transition-all tw-relative tw-h-full tw-flex tw-items-center tw-justify-center tw-overflow-hidden tw-rounded-md ${
       active ? "chela--stripy-bg" : ""
     }`;
   }, [className, active]);

@@ -83,20 +83,11 @@ function App() {
   return (
     <div className="tw-flex tw-overflow-hidden tw-h-full tw-p-4">
       {images?.length && previewUrl && photoIndex !== undefined ? (
-        <div className="tw-flex tw-w-full">
-          {/* <div className="tw-flex tw-gap-y-3 tw-flex-col tw-max-h-screen">
-            {new Array(5).fill(0).map((_, i) => (
-              <PreviewImage
-                baseUrl={previewUrl}
-                image={images[getPhotoIndex(photoIndex + i)]}
-                active={i === 0}
-                key={getPhotoIndex(photoIndex + i)}
-                thumbnail={true}
-              />
-            ))}
-          </div> */}
-          <div className="tw-flex tw-w-full tw-justify-center tw-items-center">
+        <div className="tw-grid tw-gap-y-6 chela--cull-layout">
+          <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center">
             <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
+              {/* Previous preview */}
+
               <PreviewImage
                 baseUrl={previewUrl}
                 image={images[getPhotoIndex(photoIndex - 1)]}
@@ -105,6 +96,7 @@ function App() {
                 thumbnail={false}
               />
 
+              {/* Processed preview */}
               <PreviewImage
                 baseUrl={previewUrl}
                 image={images[getPhotoIndex(photoIndex)]}
@@ -113,6 +105,7 @@ function App() {
                 thumbnail={false}
               />
 
+              {/* Next preview */}
               <PreviewImage
                 baseUrl={previewUrl}
                 image={images[getPhotoIndex(photoIndex + 1)]}
@@ -121,6 +114,20 @@ function App() {
                 thumbnail={false}
               />
             </div>
+          </div>
+
+          {/* img thumbnails */}
+          {/* todo: fill height */}
+          <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-3">
+            {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
+              <PreviewImage
+                baseUrl={previewUrl}
+                image={images[getPhotoIndex(photoIndex + i)]}
+                active={i === 0}
+                key={getPhotoIndex(photoIndex + i)}
+                thumbnail={true}
+              />
+            ))}
           </div>
         </div>
       ) : (
