@@ -1,4 +1,9 @@
-import { useEffect, useState as useFootGun, useMemo } from "react";
+import {
+  useEffect,
+  useState as useFootGun,
+  useMemo,
+  CSSProperties,
+} from "react";
 import { useAsyncEffect } from "use-async-effect";
 import { invoke } from "@tauri-apps/api/tauri";
 import { mod } from "./math";
@@ -75,19 +80,64 @@ function App() {
     };
   });
 
+  // progress
+  interface ProgressPart {
+    className: string;
+    style: CSSProperties;
+    count: number;
+  }
+
+  const progressParts = useMemo(() => {
+    return images?.length
+      ? [
+          getProgressPartClass(
+            images.filter((i) => i.state === "selected").length,
+            "tw-bg-positive",
+            "tw-text-dark"
+          ),
+          getProgressPartClass(
+            images.filter((i) => i.state === "rejected").length,
+            "tw-bg-negative",
+            "tw-text-dark"
+          ),
+          getProgressPartClass(
+            images.filter((i) => i.state === "new").length,
+            "tw-bg-border"
+          ),
+        ]
+      : [];
+    // todo: optimize the deep compare
+  }, [JSON.stringify(images)]);
+
+  function getProgressPartClass(
+    count: number,
+    bgClass: string,
+    textClass: string = ""
+  ): ProgressPart {
+    return {
+      className: `${bgClass} ${textClass} tw-transition-all tw-flex tw-basis-0 tw-items-center tw-justify-center`,
+      style: {
+        flexGrow: count,
+      },
+      count,
+    };
+  }
+
+  // conf
   useAsyncEffect(async () => {
     const conf = await invoke<AppConfig>("get_config");
     setPreviewUrl(conf.previewApiUrl);
   }, []);
 
   return (
-    <div className="tw-flex tw-overflow-hidden tw-h-full tw-p-4">
+    <div className="tw-flex tw-overflow-hidden tw-h-full tw-p-">
       {images?.length && previewUrl && photoIndex !== undefined ? (
         <div className="tw-grid tw-gap-y-6 chela--cull-layout">
           <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center">
             <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
-              {/* Previous preview */}
+              {/* todo: need to handle less than 3 imgs */}
 
+              {/* Previous preview */}
               <PreviewImage
                 baseUrl={previewUrl}
                 image={images[getPhotoIndex(photoIndex - 1)]}
@@ -117,7 +167,7 @@ function App() {
           </div>
 
           {/* img thumbnails */}
-          {/* todo: fill height */}
+          {/* todo: groups */}
           <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-3">
             {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
               <PreviewImage
@@ -127,6 +177,14 @@ function App() {
                 key={getPhotoIndex(photoIndex + i)}
                 thumbnail={true}
               />
+            ))}
+          </div>
+
+          <div className="tw-flex tw-w-full">
+            {progressParts.map((p) => (
+              <div className={p.className} style={p.style}>
+                <span className="tw-w-0">{p.count}</span>
+              </div>
             ))}
           </div>
         </div>

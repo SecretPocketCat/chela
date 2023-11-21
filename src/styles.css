@@ -30,7 +30,8 @@
 }
 
 .chela--cull-layout {
-  grid-template-rows: minmax(0, 1fr) 10rem;
+  grid-template-rows: minmax(0, 1fr) 10rem 1.2rem;
+  font-weight: bold;
 }
 
 .chela--imgs-grid {
