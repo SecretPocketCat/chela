@@ -36,7 +36,9 @@ export function ProgressBar({ images }: { images: Image[] }) {
     textClass: string = ""
   ): ProgressPart {
     return {
-      className: `${bgClass} ${textClass} tw-transition-all tw-flex tw-basis-0 tw-items-center tw-justify-center`,
+      className: `${bgClass} ${textClass} ${
+        count ? "" : "tw-w-0"
+      } tw-transition-all tw-flex tw-basis-0 tw-items-center tw-justify-center tw-overflow-hidden`,
       style: {
         flexGrow: count,
       },
@@ -48,7 +50,7 @@ export function ProgressBar({ images }: { images: Image[] }) {
     <div className="tw-flex tw-w-full">
       {progressParts.map((p, i) => (
         <div className={p.className} style={p.style} key={i}>
-          <span className="tw-w-0">{p.count}</span>
+          {p.count}
         </div>
       ))}
     </div>
