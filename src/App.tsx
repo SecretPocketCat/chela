@@ -1,36 +1,33 @@
-import { useEffect, useState as useFootGun } from "react";
+import { useEffect, useState as useFootGun, useMemo } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import { invoke } from "@tauri-apps/api/tauri";
 import { mod } from "./math";
 import { AppConfig } from "../src-tauri/bindings/AppConfig";
-import { Image } from "../src-tauri/bindings/Image";
+import { GroupedImages } from "../src-tauri/bindings/GroupedImages";
+import { PreviewImage } from "./PreviewImage";
+import { CullState } from "../src-tauri/bindings/CullState";
 
 function App() {
-  const [photos, setPhotos] = useFootGun<Image[]>();
+  const [imageGroups, setImageGroups] = useFootGun<GroupedImages>();
   const [photoIndex, setPhotoIndex] = useFootGun<number>();
   const [previewUrl, setPreviewUrl] = useFootGun<string>();
 
   async function cullDir() {
-    const culledPhotos = await invoke<Image[]>("cull_dir");
-    setPhotos(culledPhotos);
+    setImageGroups(await invoke<GroupedImages>("cull_dir"));
     setPhotoIndex(0);
   }
 
-  function getPhotoUrl(index: number) {
-    return previewUrl && photos
-      ? `http://${previewUrl}/preview?path=${encodeURIComponent(
-          photos[getPhotoIndex(index)].previewPath
-        )}`
-      : undefined;
-  }
+  const images = useMemo(() => {
+    return imageGroups?.groups.flat();
+  }, [imageGroups]);
 
   function getPhotoIndex(index: number) {
-    return mod(index, photos?.length || 1);
+    return mod(index, images?.length || 1);
   }
 
   function movePhotoIndex(offset: number) {
-    if (photos) {
-      setPhotoIndex(mod((photoIndex ?? 0) + offset, photos.length));
+    if (images) {
+      setPhotoIndex(mod((photoIndex ?? 0) + offset, images.length));
     }
   }
 
@@ -51,13 +48,22 @@ function App() {
       nextPhoto();
     } else if (ev.code === "Space") {
       ev.preventDefault();
+      setImgCullState("selected");
       nextPhoto();
     } else if (ev.code === "Backspace") {
       ev.preventDefault();
+      setImgCullState("rejected");
       nextPhoto();
     } else if (ev.code === "Delete") {
       ev.preventDefault();
+      setImgCullState("rejected");
       prevPhoto();
+    }
+  }
+
+  function setImgCullState(state: CullState) {
+    if (images && photoIndex != undefined) {
+      images[photoIndex].state = state;
     }
   }
 
@@ -75,23 +81,51 @@ function App() {
   }, []);
 
   return (
-    <div className="flex gap-6">
-      {photoIndex !== undefined ? (
-        <>
-          <img
-            src={getPhotoUrl(photoIndex)}
-            className="object-contain max-h-[95vh]"
-          />
-          <img
-            src={getPhotoUrl(photoIndex + 1)}
-            className="object-contain  max-h-[95vh]"
-          />
-        </>
-      ) : undefined}
+    <div className="tw-flex tw-overflow-hidden tw-h-full tw-p-4">
+      {images?.length && previewUrl && photoIndex !== undefined ? (
+        <div className="tw-flex tw-w-full">
+          {/* <div className="tw-flex tw-gap-y-3 tw-flex-col tw-max-h-screen">
+            {new Array(5).fill(0).map((_, i) => (
+              <PreviewImage
+                baseUrl={previewUrl}
+                image={images[getPhotoIndex(photoIndex + i)]}
+                active={i === 0}
+                key={getPhotoIndex(photoIndex + i)}
+                thumbnail={true}
+              />
+            ))}
+          </div> */}
+          <div className="tw-flex tw-w-full tw-justify-center tw-items-center">
+            <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
+              <PreviewImage
+                baseUrl={previewUrl}
+                image={images[getPhotoIndex(photoIndex - 1)]}
+                active={false}
+                key={getPhotoIndex(photoIndex - 1)}
+                thumbnail={false}
+              />
 
-      <button type="submit" onClick={cullDir}>
-        Cull dir
-      </button>
+              <PreviewImage
+                baseUrl={previewUrl}
+                image={images[getPhotoIndex(photoIndex)]}
+                active={true}
+                key={getPhotoIndex(photoIndex)}
+                thumbnail={false}
+              />
+
+              <PreviewImage
+                baseUrl={previewUrl}
+                image={images[getPhotoIndex(photoIndex + 1)]}
+                active={false}
+                key={getPhotoIndex(photoIndex + 1)}
+                thumbnail={false}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button onClick={cullDir}>Cull dir</button>
+      )}
     </div>
   );
 }

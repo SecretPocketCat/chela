@@ -1,11 +1,10 @@
+use super::{CullState, Image};
 use anyhow::anyhow;
 use glob::{glob_with, MatchOptions};
 use std::{
     fs::metadata,
     path::{Path, PathBuf},
 };
-
-use super::Image;
 
 pub(crate) fn get_raw_images(path: &Path) -> anyhow::Result<Vec<Image>> {
     let glob_pattern = path.join("*.arw");
@@ -28,6 +27,8 @@ pub(crate) fn get_raw_images(path: &Path) -> anyhow::Result<Vec<Image>> {
                 preview_path: get_preview_path(&p).ok_or(anyhow!("Failed to get preview path"))?,
                 path: p,
                 created: meta.created()?.min(meta.modified()?).into(),
+                // todo: get serialized state - DB or maybe just a json/toml?
+                state: CullState::New,
             })
         })
     })
