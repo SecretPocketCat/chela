@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, ReactNode } from "react";
 import { useMeasure } from "react-use";
 import { Spinner } from "@chakra-ui/react";
 import { Image } from "../../src-tauri/bindings/Image";
 
 export function PreviewImage({
+  wrapperChildren,
   active,
   baseUrl,
   image,
@@ -15,6 +16,7 @@ export function PreviewImage({
   active: boolean;
   thumbnail: boolean;
   className?: string;
+  wrapperChildren?: ReactNode;
 }) {
   function getPreviewUrl() {
     return `http://${baseUrl}/preview?path=${encodeURIComponent(
@@ -87,6 +89,8 @@ export function PreviewImage({
 
   return (
     <div className={wrapperClass}>
+      {wrapperChildren}
+
       <img ref={imgRef} src={getPreviewUrl()} className={imgClass} />
 
       <div

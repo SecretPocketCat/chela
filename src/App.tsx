@@ -17,7 +17,7 @@ const colors: ChakraTheme["colors"] = {
   dark: "#222",
   border: "#333",
   "border-dark": "#252525",
-  primary: "#0ea5e9",
+  primary: "#075985",
   negative: "#f87171",
   positive: "#34d399",
 };
@@ -51,7 +51,12 @@ function App() {
           <CullScreen groupedImages={groupedImages} previewUrl={previewUrl} />
         ) : (
           <div className="tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center">
-            <Button colorScheme="blue" padding={7} size="lg" onClick={cullDir}>
+            <Button
+              backgroundColor="primary"
+              padding={7}
+              size="lg"
+              onClick={cullDir}
+            >
               Cull directory
             </Button>
           </div>

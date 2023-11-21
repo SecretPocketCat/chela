@@ -91,6 +91,11 @@ export function CullScreen({
             active={true}
             key={getImageIndex(imageIndex)}
             thumbnail={false}
+            wrapperChildren={
+              <div className="tw-absolute tw-left-0 tw-top-0 tw-font-bold tw-text-2xl tw-bg-primary tw-rounded-br-md tw-py-1 tw-px-2">
+                {imageIndex + 1}/{images.length}
+              </div>
+            }
           />
 
           {/* Next preview */}
