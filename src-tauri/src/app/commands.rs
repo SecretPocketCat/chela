@@ -93,6 +93,10 @@ pub(super) async fn cull_dir(
                 }
             }
 
+            if curr_group.len() > 0 {
+                groups.push(curr_group);
+            }
+
             Ok(GroupedImages { groups })
         }
         None => Err("Dialog was closed".to_owned()),
