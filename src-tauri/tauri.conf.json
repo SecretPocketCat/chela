@@ -15,6 +15,11 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "window": {
+        "close": true,
+        "maximize": true,
+        "minimize": true
       }
     },
     "bundle": {
@@ -34,11 +39,13 @@
     },
     "windows": [
       {
+        "decorations": false,
         "resizable": false,
         "x": 0,
         "y": 0,
         "width": 2740,
-        "height": 1070,
+        "height": 1095,
+        "transparent": true,
         "title": "chela"
       }
     ]

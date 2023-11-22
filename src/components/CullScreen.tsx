@@ -4,6 +4,8 @@ import { GroupedImages } from "../../src-tauri/bindings/GroupedImages";
 import { PreviewImage } from "./PreviewImage";
 import { ProgressBar } from "./ProgressBar";
 import { CullState } from "../../src-tauri/bindings/CullState";
+import { useSetAtom } from "jotai";
+import { titleAtom } from "../store/navStore";
 
 export function CullScreen({
   groupedImages,
@@ -69,9 +71,15 @@ export function CullScreen({
     };
   });
 
+  // title
+  const setTitle = useSetAtom(titleAtom);
+  useEffect(() => {
+    setTitle(`${imageIndex + 1}/${images.length}`);
+  }, [images.length, imageIndex]);
+
   return (
-    <div className="tw-grid tw-gap-y-6 tw-w-full chela--cull-layout">
-      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center">
+    <div className="tw-grid tw-gap-y-2 tw-w-full chela--cull-layout">
+      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3  tw-px-4">
         <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
           {/* todo: need to handle less than 3 imgs */}
 
@@ -91,11 +99,6 @@ export function CullScreen({
             active={true}
             key={getImageIndex(imageIndex)}
             thumbnail={false}
-            wrapperChildren={
-              <div className="tw-absolute tw-left-0 tw-top-0 tw-font-bold tw-text-2xl tw-bg-primary tw-rounded-br-md tw-py-1 tw-px-2">
-                {imageIndex + 1}/{images.length}
-              </div>
-            }
           />
 
           {/* Next preview */}
@@ -111,7 +114,7 @@ export function CullScreen({
 
       {/* img thumbnails */}
       {/* todo: groups */}
-      <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-3">
+      <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-3 tw-px-4">
         {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
           <PreviewImage
             baseUrl={previewUrl}
