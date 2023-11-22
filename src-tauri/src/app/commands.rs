@@ -95,7 +95,7 @@ pub(super) async fn cull_dir(
                 }
             }
 
-            if curr_group.is_empty() {
+            if !curr_group.is_empty() {
                 groups.push(curr_group);
             }
 
