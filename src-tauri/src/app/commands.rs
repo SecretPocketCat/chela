@@ -49,6 +49,10 @@ pub(super) async fn cull_dir(
             let mut images =
                 get_raw_images(&p).map_err(|_| "Failed to get raw paths".to_owned())?;
 
+            if images.is_empty() {
+                return Err("No images".to_owned());
+            }
+
             // sort by creation
             images.sort_by(|a, b| a.created.cmp(&b.created));
 

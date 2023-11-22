@@ -11,6 +11,7 @@ import {
   IconButton,
   extendTheme,
   ChakraTheme,
+  useToast,
 } from "@chakra-ui/react";
 import { MdClose, MdMinimize, MdFolder } from "react-icons/md";
 import { CullScreen } from "./components/CullScreen";
@@ -39,13 +40,26 @@ const theme = extendTheme({
 
 export function App() {
   const [groupedImages, setImageGroups] = useState<GroupedImages>();
+  const toast = useToast();
 
   // nav
   const title = useAtomValue(titleAtom);
 
   // cull
   async function cullDir() {
-    setImageGroups(await invoke<GroupedImages>("cull_dir"));
+    try {
+      setImageGroups(await invoke<GroupedImages>("cull_dir"));
+    } catch (error) {
+      if (typeof error === "string") {
+        toast({
+          status: "error",
+          title: "Could not cull directory",
+          description: error,
+          isClosable: true,
+          position: "bottom-right",
+        });
+      }
+    }
   }
 
   // conf
