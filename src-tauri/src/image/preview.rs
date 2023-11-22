@@ -16,7 +16,6 @@ use super::Image;
 pub(crate) type PreviewMap =
     Arc<tokio::sync::RwLock<HashMap<PathBuf, tokio::sync::RwLock<Option<Notify>>>>>;
 
-// todo: don't take ownership of ram image - maybe just take &Path s for raw & preview?
 pub(crate) fn create_preview(raw_img: &Image) -> anyhow::Result<()> {
     if !raw_img.preview_path.exists() {
         let dir = raw_img
