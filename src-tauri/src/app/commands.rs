@@ -1,3 +1,5 @@
+#![allow(clippy::used_underscore_binding)] // tauri commands fail this lint
+
 use tokio::sync::RwLock;
 
 use super::state::AppState;
@@ -77,7 +79,7 @@ pub(super) async fn cull_dir(
             let mut groups = Vec::new();
             let mut curr_group: Vec<Image> = Vec::new();
 
-            for img in images.into_iter() {
+            for img in images {
                 match curr_group.last() {
                     Some(last) => {
                         if (img.created - last.created).num_milliseconds() > 1000 {
@@ -93,7 +95,7 @@ pub(super) async fn cull_dir(
                 }
             }
 
-            if curr_group.len() > 0 {
+            if curr_group.is_empty() {
                 groups.push(curr_group);
             }
 

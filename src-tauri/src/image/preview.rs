@@ -17,7 +17,7 @@ pub(crate) type PreviewMap =
     Arc<tokio::sync::RwLock<HashMap<PathBuf, tokio::sync::RwLock<Option<Notify>>>>>;
 
 // todo: don't take ownership of ram image - maybe just take &Path s for raw & preview?
-pub(crate) fn create_preview(raw_img: Image) -> anyhow::Result<()> {
+pub(crate) fn create_preview(raw_img: &Image) -> anyhow::Result<()> {
     if !raw_img.preview_path.exists() {
         let dir = raw_img
             .preview_path
@@ -87,7 +87,7 @@ pub(crate) async fn process_previews(
                             return;
                         }
 
-                        create_preview(img).unwrap_or_else(|_| {
+                        create_preview(&img).unwrap_or_else(|_| {
                             panic!("Preview {:?} has failed to generate", &path)
                         });
 

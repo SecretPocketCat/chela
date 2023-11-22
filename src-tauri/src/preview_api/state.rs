@@ -11,7 +11,7 @@ pub(crate) struct PreviewApiState {
 impl PreviewApiState {
     pub(crate) fn new(previews: PreviewMap) -> Self {
         Self {
-            health: Default::default(),
+            health: HealthState::default(),
             previews,
         }
     }

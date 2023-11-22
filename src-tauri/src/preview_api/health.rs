@@ -25,7 +25,7 @@ pub(crate) async fn health(api_state: State<HealthState>) -> impl IntoResponse {
     };
 
     Json(ApiStateResponse {
-        uptime: format!("{:.2} {}(s)", value, unit),
+        uptime: format!("{value:.2} {unit}(s)"),
         status: ApiStatus::Ok,
     })
 }
