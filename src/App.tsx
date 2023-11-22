@@ -17,6 +17,7 @@ import { CullScreen } from "./components/CullScreen";
 import { useAtomValue, useAtom } from "jotai";
 import { titleAtom } from "./store/navStore";
 import { configAtom } from "./store/configStore";
+import { IconType } from "react-icons";
 
 const colors: ChakraTheme["colors"] = {
   transparent: "transparent",
@@ -62,7 +63,7 @@ export function App() {
             variant="ghost"
             colorScheme="blue"
             aria-label="Minimize"
-            icon={<Icon as={MdFolder} boxSize="20px" marginBottom={1} />}
+            icon={<Icon as={MdFolder as IconType} boxSize="20px" marginBottom={1} />}
             marginLeft={1}
             onClick={cullDir}
           />
@@ -74,7 +75,7 @@ export function App() {
             variant="ghost"
             colorScheme="gray"
             aria-label="Minimize"
-            icon={<Icon as={MdMinimize} boxSize="20px" marginBottom={1} />}
+            icon={<Icon as={MdMinimize as IconType} boxSize="20px" marginBottom={1} />}
             marginRight={1}
             onClick={() => appWindow.minimize()}
           />
@@ -84,7 +85,7 @@ export function App() {
             variant="ghost"
             colorScheme="gray"
             aria-label="Close"
-            icon={<Icon as={MdClose} boxSize="20px" />}
+            icon={<Icon as={MdClose as IconType} boxSize="20px" />}
             marginRight={1.5}
             onClick={() => appWindow.close()}
           />
@@ -101,7 +102,9 @@ export function App() {
                 backgroundColor="primary"
                 padding={7}
                 size="lg"
-                leftIcon={<Icon as={MdFolder} boxSize="30px" marginRight={2} />}
+                leftIcon={
+                  <Icon as={MdFolder as IconType} boxSize="30px" marginRight={2} />
+                }
                 onClick={cullDir}
               >
                 Cull directory

@@ -14,26 +14,27 @@ export function ProgressBar({ images }: { images: Image[] }) {
           getProgressPartClass(
             images.filter((i) => i.state === "selected").length,
             "tw-bg-positive",
-            "tw-text-dark"
+            "tw-text-dark",
           ),
           getProgressPartClass(
             images.filter((i) => i.state === "rejected").length,
             "tw-bg-negative",
-            "tw-text-dark"
+            "tw-text-dark",
           ),
           getProgressPartClass(
             images.filter((i) => i.state === "new").length,
-            "tw-bg-border"
+            "tw-bg-border",
           ),
         ]
       : [];
     // todo: optimize the deep compare
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(images)]);
 
   function getProgressPartClass(
     count: number,
     bgClass: string,
-    textClass: string = ""
+    textClass: string = "",
   ): ProgressPart {
     return {
       className: `${bgClass} ${textClass} ${

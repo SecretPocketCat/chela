@@ -7,11 +7,7 @@ import { CullState } from "../../src-tauri/bindings/CullState";
 import { useSetAtom } from "jotai";
 import { titleAtom } from "../store/navStore";
 
-export function CullScreen({
-  groupedImages,
-}: {
-  groupedImages: GroupedImages;
-}) {
+export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) {
   const [imageIndex, setImageIndex] = useState(0);
 
   const images = useMemo(() => {
@@ -73,7 +69,7 @@ export function CullScreen({
   const setTitle = useSetAtom(titleAtom);
   useEffect(() => {
     setTitle(`${imageIndex + 1}/${images.length}`);
-  }, [images.length, imageIndex]);
+  }, [images.length, imageIndex, setTitle]);
 
   return (
     <div className="tw-grid tw-gap-y-2 tw-w-full chela--cull-layout">

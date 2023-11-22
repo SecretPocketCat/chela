@@ -22,12 +22,11 @@ export function PreviewImage({
 
   function getPreviewUrl() {
     return `http://${conf.previewApiUrl}/preview?path=${encodeURIComponent(
-      image.previewPath
+      image.previewPath,
     )}`;
   }
 
-  const [imgRef, { width: imgWidth, height: imgHeight }] =
-    useMeasure<HTMLImageElement>();
+  const [imgRef, { width: imgWidth, height: imgHeight }] = useMeasure<HTMLImageElement>();
 
   const stateColorClass = useMemo(() => {
     switch (image.state) {
@@ -59,31 +58,29 @@ export function PreviewImage({
   }, [className, active, thumbnail]);
 
   const borderClass = useMemo(() => {
-    return `${stateBorderColorClass} ${
-      thumbnail ? "tw-border-4" : " tw-border-[6px]"
-    } `;
-  }, [active, thumbnail, stateBorderColorClass]);
+    return `${stateBorderColorClass} ${thumbnail ? "tw-border-4" : " tw-border-[6px]"} `;
+  }, [thumbnail, stateBorderColorClass]);
 
   const imgClass = useMemo(() => {
     return `tw-z-[1] tw-transition-all tw-max-w-full tw-max-h-full tw-rounded-md ${borderClass}`;
   }, [borderClass]);
 
   const flagClass = useMemo(() => {
-    return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2 tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${getFlagStateClass()}`;
-  }, [borderClass, image.state]);
+    function getFlagStateClass() {
+      const sizeClass = "tw-w-12 tw-h-12";
 
-  function getFlagStateClass() {
-    const sizeClass = "tw-w-12 tw-h-12";
-
-    switch (image.state) {
-      case "new":
-        return `${stateColorClass} tw-w-0 tw-h-0`;
-      case "selected":
-        return `${stateColorClass} ${sizeClass}`;
-      case "rejected":
-        return `${stateColorClass} ${sizeClass}`;
+      switch (image.state) {
+        case "new":
+          return `${stateColorClass} tw-w-0 tw-h-0`;
+        case "selected":
+          return `${stateColorClass} ${sizeClass}`;
+        case "rejected":
+          return `${stateColorClass} ${sizeClass}`;
+      }
     }
-  }
+
+    return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2 tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${getFlagStateClass()}`;
+  }, [borderClass, image.state, stateColorClass]);
 
   function getSpinnerSize() {
     return thumbnail ? 65 : 250;
