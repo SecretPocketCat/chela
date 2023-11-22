@@ -9,10 +9,8 @@ import { titleAtom } from "../store/navStore";
 
 export function CullScreen({
   groupedImages,
-  previewUrl,
 }: {
   groupedImages: GroupedImages;
-  previewUrl: string;
 }) {
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -85,7 +83,6 @@ export function CullScreen({
 
           {/* Previous preview */}
           <PreviewImage
-            baseUrl={previewUrl}
             image={images[getImageIndex(imageIndex - 1)]}
             active={false}
             key={getImageIndex(imageIndex - 1)}
@@ -94,7 +91,6 @@ export function CullScreen({
 
           {/* Processed preview */}
           <PreviewImage
-            baseUrl={previewUrl}
             image={images[getImageIndex(imageIndex)]}
             active={true}
             key={getImageIndex(imageIndex)}
@@ -103,7 +99,6 @@ export function CullScreen({
 
           {/* Next preview */}
           <PreviewImage
-            baseUrl={previewUrl}
             image={images[getImageIndex(imageIndex + 1)]}
             active={false}
             key={getImageIndex(imageIndex + 1)}
@@ -117,7 +112,6 @@ export function CullScreen({
       <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-3 tw-px-4">
         {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
           <PreviewImage
-            baseUrl={previewUrl}
             image={images[getImageIndex(imageIndex + i)]}
             active={i === 0}
             key={getImageIndex(imageIndex + i)}

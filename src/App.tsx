@@ -14,8 +14,9 @@ import {
 } from "@chakra-ui/react";
 import { MdClose, MdMinimize, MdFolder } from "react-icons/md";
 import { CullScreen } from "./components/CullScreen";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useAtom } from "jotai";
 import { titleAtom } from "./store/navStore";
+import { configAtom } from "./store/configStore";
 
 const colors: ChakraTheme["colors"] = {
   transparent: "transparent",
@@ -37,7 +38,6 @@ const theme = extendTheme({
 
 export function App() {
   const [groupedImages, setImageGroups] = useState<GroupedImages>();
-  const [previewUrl, setPreviewUrl] = useState<string>();
 
   // nav
   const title = useAtomValue(titleAtom);
@@ -48,9 +48,9 @@ export function App() {
   }
 
   // conf
+  const [appConf, setAppConf] = useAtom(configAtom);
   useAsyncEffect(async () => {
-    const conf = await invoke<AppConfig>("get_config");
-    setPreviewUrl(conf.previewApiUrl);
+    setAppConf(await invoke<AppConfig>("get_config"));
   }, []);
 
   return (
@@ -91,23 +91,25 @@ export function App() {
         </div>
       </nav>
 
-      <div className="chela--app tw-flex tw-overflow-hidden tw-h-full">
-        {groupedImages?.groups.length && previewUrl ? (
-          <CullScreen groupedImages={groupedImages} previewUrl={previewUrl} />
-        ) : (
-          <div className="tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center">
-            <Button
-              backgroundColor="primary"
-              padding={7}
-              size="lg"
-              leftIcon={<Icon as={MdFolder} boxSize="30px" marginRight={2} />}
-              onClick={cullDir}
-            >
-              Cull directory
-            </Button>
-          </div>
-        )}
-      </div>
+      {appConf ? (
+        <div className="chela--app tw-flex tw-overflow-hidden tw-h-full">
+          {groupedImages?.groups.length ? (
+            <CullScreen groupedImages={groupedImages} />
+          ) : (
+            <div className="tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center">
+              <Button
+                backgroundColor="primary"
+                padding={7}
+                size="lg"
+                leftIcon={<Icon as={MdFolder} boxSize="30px" marginRight={2} />}
+                onClick={cullDir}
+              >
+                Cull directory
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : undefined}
     </ChakraProvider>
   );
 }

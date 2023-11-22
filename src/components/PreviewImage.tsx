@@ -2,24 +2,26 @@ import { useMemo, ReactNode } from "react";
 import { useMeasure } from "react-use";
 import { Spinner } from "@chakra-ui/react";
 import { Image } from "../../src-tauri/bindings/Image";
+import { useAtomValue } from "jotai";
+import { configAtom } from "../store/configStore";
 
 export function PreviewImage({
   wrapperChildren,
   active,
-  baseUrl,
   image,
   thumbnail,
   className,
 }: {
-  baseUrl: string;
   image: Image;
   active: boolean;
   thumbnail: boolean;
   className?: string;
   wrapperChildren?: ReactNode;
 }) {
+  const conf = useAtomValue(configAtom);
+
   function getPreviewUrl() {
-    return `http://${baseUrl}/preview?path=${encodeURIComponent(
+    return `http://${conf.previewApiUrl}/preview?path=${encodeURIComponent(
       image.previewPath
     )}`;
   }
