@@ -75,15 +75,17 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
     <div className="tw-grid tw-gap-y-2 tw-w-full chela--cull-layout">
       <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3  tw-px-4">
         <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
-          {/* todo: need to handle less than 3 imgs */}
-
           {/* Previous preview */}
-          <PreviewImage
-            image={images[getImageIndex(imageIndex - 1)]}
-            active={false}
-            key={getImageIndex(imageIndex - 1)}
-            thumbnail={false}
-          />
+          {images.length >= 3 ? (
+            <PreviewImage
+              image={images[getImageIndex(imageIndex - 1)]}
+              active={false}
+              key={getImageIndex(imageIndex - 1)}
+              thumbnail={false}
+            />
+          ) : (
+            <div></div>
+          )}
 
           {/* Processed preview */}
           <PreviewImage
@@ -94,12 +96,16 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
           />
 
           {/* Next preview */}
-          <PreviewImage
-            image={images[getImageIndex(imageIndex + 1)]}
-            active={false}
-            key={getImageIndex(imageIndex + 1)}
-            thumbnail={false}
-          />
+          {images.length >= 2 ? (
+            <PreviewImage
+              image={images[getImageIndex(imageIndex + 1)]}
+              active={false}
+              key={getImageIndex(imageIndex + 1)}
+              thumbnail={false}
+            />
+          ) : (
+            <div></div>
+          )}
         </div>
       </div>
 
