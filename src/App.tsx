@@ -25,7 +25,7 @@ const colors: ChakraTheme["colors"] = {
   light: "#e5e7eb",
   dark: "#222",
   border: "#333",
-  "border-dark": "#252525",
+  "border-dark": "#111",
   primary: "#075985",
   negative: "#f87171",
   positive: "#34d399",

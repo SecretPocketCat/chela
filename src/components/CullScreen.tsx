@@ -11,7 +11,7 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   const [imageIndex, setImageIndex] = useState(0);
 
   const images = useMemo(() => {
-    return groupedImages?.groups.flat();
+    return groupedImages.groups.flat();
   }, [groupedImages]);
 
   function getImageIndex(index: number) {
@@ -72,8 +72,8 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [images.length, imageIndex, setTitle]);
 
   return (
-    <div className="tw-grid tw-gap-y-2 tw-w-full chela--cull-layout">
-      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3  tw-px-4">
+    <div className="tw-grid tw-w-full chela--cull-layout">
+      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4">
         <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
           {/* Previous preview */}
           {images.length >= 3 ? (
@@ -111,15 +111,41 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
 
       {/* img thumbnails */}
       {/* todo: groups */}
-      <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-3 tw-px-4">
-        {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
+      <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-5 tw-px-4 tw-pb-2">
+        {groupedImages.groups.map((g, groupInd) => (
+          // todo: primary border for active img
+          <div
+            className={`tw-h-full tw-flex tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
+              g.length > 1
+                ? "tw-bg-border tw-border-4 tw-border-border-light tw-p-1.5"
+                : "tw-py-2"
+            }`}
+            key={groupInd}
+          >
+            {g.map((img, imgInd) => {
+              console.warn(groupInd, imgInd, img);
+              return (
+                <PreviewImage
+                  image={img}
+                  // todo:
+                  active={false}
+                  key={getImageIndex(imgInd)}
+                  thumbnail
+                  grouped={g.length > 1}
+                  className={`g:${groupInd}, img:${imgInd}`}
+                />
+              );
+            })}
+          </div>
+        ))}
+        {/* {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
           <PreviewImage
             image={images[getImageIndex(imageIndex + i)]}
             active={i === 0}
             key={getImageIndex(imageIndex + i)}
             thumbnail={true}
           />
-        ))}
+        ))} */}
       </div>
 
       <ProgressBar images={images} />

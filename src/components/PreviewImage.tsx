@@ -1,4 +1,4 @@
-import { useMemo, ReactNode } from "react";
+import { useMemo } from "react";
 import { useMeasure } from "react-use";
 import { Spinner } from "@chakra-ui/react";
 import { Image } from "../../src-tauri/bindings/Image";
@@ -6,17 +6,17 @@ import { useAtomValue } from "jotai";
 import { configAtom } from "../store/configStore";
 
 export function PreviewImage({
-  wrapperChildren,
   active,
   image,
   thumbnail,
+  grouped,
   className,
 }: {
   image: Image;
   active: boolean;
   thumbnail: boolean;
+  grouped?: boolean;
   className?: string;
-  wrapperChildren?: ReactNode;
 }) {
   const conf = useAtomValue(configAtom);
 
@@ -40,15 +40,23 @@ export function PreviewImage({
   }, [image.state]);
 
   const stateBorderColorClass = useMemo(() => {
+    if (thumbnail && active) {
+      return "chela--border-outset tw-border-primary";
+    }
+
     switch (image.state) {
       case "new":
-        return "tw-border-t-border tw-border-l-border tw-border-b-border-dark tw-border-r-border-dark";
+        return `tw-border-solid tw-border-border-light ${
+          grouped
+            ? "tw-border-b-dark tw-border-r-dark"
+            : "tw-border-b-border tw-border-r-border"
+        } `;
       case "selected":
         return "chela--border-outset tw-border-positive";
       case "rejected":
         return "chela--border-outset tw-border-negative";
     }
-  }, [image.state]);
+  }, [image.state, grouped, active, thumbnail]);
 
   // todo: better size for thumbnails
   const wrapperClass = useMemo(() => {
@@ -79,7 +87,9 @@ export function PreviewImage({
       }
     }
 
-    return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2 tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${getFlagStateClass()}`;
+    return `tw-transition-all tw-absolute tw-translate-x-1/2 -tw-translate-y-1/2 tw-right-0 tw-top-0 tw-rotate-45 ${borderClass} ${
+      image.state === "new" ? "!tw-border-0" : ""
+    } ${getFlagStateClass()}`;
   }, [borderClass, image.state, stateColorClass]);
 
   function getSpinnerSize() {
@@ -88,8 +98,6 @@ export function PreviewImage({
 
   return (
     <div className={wrapperClass}>
-      {wrapperChildren}
-
       <img ref={imgRef} src={getPreviewUrl()} className={imgClass} />
 
       <div
