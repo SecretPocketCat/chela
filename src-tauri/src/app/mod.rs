@@ -1,4 +1,4 @@
-use tauri::Manager;
+use tauri::{LogicalSize, Manager, PhysicalSize};
 
 use crate::{image::process_previews, preview_api};
 use std::{collections::HashMap, sync::Arc};
@@ -16,6 +16,15 @@ pub(crate) fn run_app() -> tauri::Result<()> {
             commands::cull_dir
         ])
         .setup(|app| {
+            if cfg!(debug_assertions) {
+                // open devtools (for debug builds only)
+                if let Some(win) = app.windows().values().next() {
+                    let height = win.outer_size()?.to_logical(win.scale_factor()?).height;
+                    win.set_size(LogicalSize::new(1900, height))?;
+                    win.open_devtools();
+                }
+            }
+
             // preview processing
             // use a channel to report processing progress?
             let p = Arc::clone(&previews);
