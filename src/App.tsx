@@ -45,10 +45,10 @@ export function App() {
   // nav
   const title = useAtomValue(titleAtom);
 
-  // cull
-  async function cullDir() {
+  // open dir
+  async function openDir() {
     try {
-      setImageGroups(await invoke<GroupedImages>("cull_dir"));
+      setImageGroups(await invoke<GroupedImages>("open_dir"));
     } catch (error) {
       if (typeof error === "string") {
         toast({
@@ -79,7 +79,7 @@ export function App() {
             aria-label="Minimize"
             icon={<Icon as={MdFolder as IconType} boxSize="20px" marginBottom={1} />}
             marginLeft={1}
-            onClick={cullDir}
+            onClick={openDir}
           />
         </div>
         <div>{title}</div>
@@ -119,7 +119,7 @@ export function App() {
                 leftIcon={
                   <Icon as={MdFolder as IconType} boxSize="30px" marginRight={2} />
                 }
-                onClick={cullDir}
+                onClick={openDir}
               >
                 Cull directory
               </Button>

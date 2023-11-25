@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { mod } from "../utils/math";
 import { GroupedImages } from "../../src-tauri/bindings/GroupedImages";
+import { CulledImages } from "../../src-tauri/bindings/CulledImages";
 import { PreviewImage } from "./PreviewImage";
 import { ProgressBar } from "./ProgressBar";
 import { CullState } from "../../src-tauri/bindings/CullState";
 import { Image } from "../../src-tauri/bindings/Image";
 import { useSetAtom } from "jotai";
 import { titleAtom } from "../store/navStore";
+import { invoke } from "@tauri-apps/api";
+import { forgetFnReturn } from "../utils/function";
 
 export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) {
   const [imageIndex, setImageIndex] = useState(0);
@@ -20,7 +23,7 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [groupedImages]);
 
   // kbd bindings
-  function onKeyDown(ev: KeyboardEvent) {
+  async function onKeyDown(ev: KeyboardEvent) {
     const groupBinding = ev.shiftKey;
 
     if (ev.code === "ArrowLeft") {
@@ -38,15 +41,15 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
       }
     } else if (ev.code === "Space") {
       ev.preventDefault();
-      setImgCullState("selected", groupBinding);
+      await setImgCullState("selected", groupBinding);
       nextImage(groupBinding);
     } else if (ev.code === "Backspace") {
       ev.preventDefault();
-      setImgCullState("rejected", false);
+      await setImgCullState("rejected", false);
       nextImage(false);
     } else if (ev.code === "Delete") {
       ev.preventDefault();
-      setImgCullState("rejected", false);
+      await setImgCullState("rejected", false);
       prevImage(false);
     }
   }
@@ -67,8 +70,6 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
           : selectedGroupIndices.startImageIndex;
     }
 
-    console.warn(imageIndex, imgIndex);
-
     setImageIndex(mod((imgIndex ?? 0) + offset, images.length));
   }
 
@@ -80,8 +81,13 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
     moveImageIndex(-1, group);
   }
 
-  function setImgCullState(state: CullState, group: boolean) {
-    images[imageIndex].state = state;
+  async function setImgCullState(state: CullState, group: boolean) {
+    const img = images[imageIndex];
+    img.state = state;
+
+    const culled: CulledImages = {
+      [img.previewPath]: state,
+    };
 
     if (group) {
       // set all unculled group imgs to rejected
@@ -89,15 +95,21 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
         .filter((img) => img.state === "new")
         .forEach((img) => {
           img.state = "rejected";
+          culled[img.previewPath] = img.state;
         });
     }
+
+    await invoke<void>("cull_images", {
+      culled,
+    });
   }
 
   useEffect(() => {
-    document.addEventListener("keydown", onKeyDown);
+    const handler = forgetFnReturn(onKeyDown);
+    document.addEventListener("keydown", handler);
 
     return () => {
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keydown", handler);
     };
   });
 
@@ -130,8 +142,6 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
         });
       });
     });
-
-    console.warn(res);
 
     return res;
   }, [groupedImages]);

@@ -1,4 +1,4 @@
-use tauri::{LogicalSize, Manager, PhysicalSize};
+use tauri::{LogicalSize, Manager};
 
 use crate::{image::process_previews, preview_api};
 use std::{collections::HashMap, sync::Arc};
@@ -13,7 +13,8 @@ pub(crate) fn run_app() -> tauri::Result<()> {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
-            commands::cull_dir
+            commands::open_dir,
+            commands::cull_images,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

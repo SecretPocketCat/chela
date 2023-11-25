@@ -1,10 +1,12 @@
 #![allow(clippy::used_underscore_binding)] // tauri commands fail this lint
 
+use std::{collections::HashMap, path::PathBuf};
+
 use tokio::sync::RwLock;
 
 use super::state::AppState;
-use crate::image::{get_raw_images, Image};
-use serde::Serialize;
+use crate::image::{get_raw_images, read_cull_meta_or_default, CullState, Image, META_EXT};
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Serialize, TS)]
@@ -21,6 +23,10 @@ pub(super) struct GroupedImages {
     groups: Vec<Vec<Image>>,
 }
 
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub(super) struct CulledImages(HashMap<PathBuf, CullState>);
+
 #[tauri::command]
 pub(super) async fn get_config(app_state: tauri::State<'_, AppState>) -> Result<AppConfig, String> {
     Ok(AppConfig {
@@ -28,10 +34,35 @@ pub(super) async fn get_config(app_state: tauri::State<'_, AppState>) -> Result<
     })
 }
 
+#[tauri::command]
+pub(super) async fn cull_images(culled: CulledImages) -> Result<(), String> {
+    // todo: join all writes (parallel using tokio)
+    // todo: first read meta (should already exist from preview gen)
+    // todo: update state & write the files back
+
+    for (mut path, state) in culled.0 {
+        path.set_extension(META_EXT);
+
+        let mut cull_meta = read_cull_meta_or_default(&path).await;
+
+        if cull_meta.cull_state != state {
+            cull_meta.cull_state = state;
+            tokio::fs::write(
+                path,
+                serde_json::to_vec_pretty(&cull_meta).map_err(|e| e.to_string())?,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
 // the cmd has to be is async to start on a different thread
 // blocking file dalog would otherwise block main thread
 #[tauri::command]
-pub(super) async fn cull_dir(
+pub(super) async fn open_dir(
     window: tauri::Window,
     app_state: tauri::State<'_, AppState>,
 ) -> Result<GroupedImages, String> {
@@ -46,8 +77,9 @@ pub(super) async fn cull_dir(
 
     match dir {
         Some(p) => {
-            let mut images =
-                get_raw_images(&p).map_err(|_| "Failed to get raw paths".to_owned())?;
+            let mut images = get_raw_images(&p)
+                .await
+                .map_err(|_| "Failed to get raw paths".to_owned())?;
 
             if images.is_empty() {
                 return Err("No images".to_owned());

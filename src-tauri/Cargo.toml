@@ -33,6 +33,7 @@ axum = { version = "0.6", features = ["http2", "macros", "headers"] }
 hyper = "0.14"
 chrono = { version = "0.4", features = ["serde"] }
 ts-rs = { version = "7.0.0", features = ["chrono-impl", "format"] }
+tokio-stream = "0.1.14"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
