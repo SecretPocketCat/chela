@@ -86,7 +86,8 @@ pub(super) async fn cull_dir(
             for img in images {
                 match curr_group.last() {
                     Some(last) => {
-                        if (img.created - last.created).num_milliseconds() > 1000 {
+                        // todo: config
+                        if (img.created - last.created).num_milliseconds() > 3000 {
                             groups.push(curr_group);
                             curr_group = Vec::new();
                         }

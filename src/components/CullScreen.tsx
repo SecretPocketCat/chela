@@ -4,32 +4,22 @@ import { GroupedImages } from "../../src-tauri/bindings/GroupedImages";
 import { PreviewImage } from "./PreviewImage";
 import { ProgressBar } from "./ProgressBar";
 import { CullState } from "../../src-tauri/bindings/CullState";
+import { Image } from "../../src-tauri/bindings/Image";
 import { useSetAtom } from "jotai";
 import { titleAtom } from "../store/navStore";
 
 export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) {
   const [imageIndex, setImageIndex] = useState(0);
 
+  useEffect(() => {
+    setImageIndex(0);
+  }, [groupedImages]);
+
   const images = useMemo(() => {
     return groupedImages.groups.flat();
   }, [groupedImages]);
 
-  function getImageIndex(index: number) {
-    return mod(index, images.length || 1);
-  }
-
-  function moveImageIndex(offset: number) {
-    setImageIndex(mod((imageIndex ?? 0) + offset, images.length));
-  }
-
-  function nextImage() {
-    moveImageIndex(1);
-  }
-
-  function prevImage() {
-    moveImageIndex(-1);
-  }
-
+  // kbd bindings
   // todo: add tab + tab+Shift & group bindings with shift
   function onKeyDown(ev: KeyboardEvent) {
     if (ev.code === "ArrowLeft") {
@@ -53,6 +43,22 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
     }
   }
 
+  function getImageIndex(index: number) {
+    return mod(index, images.length || 1);
+  }
+
+  function moveImageIndex(offset: number) {
+    setImageIndex(mod((imageIndex ?? 0) + offset, images.length));
+  }
+
+  function nextImage() {
+    moveImageIndex(1);
+  }
+
+  function prevImage() {
+    moveImageIndex(-1);
+  }
+
   function setImgCullState(state: CullState) {
     images[imageIndex].state = state;
   }
@@ -70,6 +76,51 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   useEffect(() => {
     setTitle(`${imageIndex + 1}/${images.length}`);
   }, [images.length, imageIndex, setTitle]);
+
+  // groups
+  const visibleGroups = useMemo(() => {
+    const res: Image[][] = [];
+    let imgTreshold = Math.min(25, images.length);
+
+    function addGroups(fill: boolean) {
+      let currentImgInd = 0;
+
+      for (let i = 0; i < groupedImages.groups.length; i++) {
+        const g = groupedImages.groups[i];
+        const imgGroupIndex = imageIndex - currentImgInd;
+        const prevThumbnailsCount = 10;
+
+        if ((!fill && imgGroupIndex < g.length) || (fill && imgGroupIndex >= g.length)) {
+          // limit the group size if the selected image (first group) wouldn't be visible
+          const sliceFrom =
+            res.length == 0
+              ? Math.max(
+                  0,
+                  // show N previous thumbnails from the current group
+                  imgGroupIndex - prevThumbnailsCount,
+                )
+              : 0;
+          // clamp to treshold
+          const clampedGroup = g.slice(sliceFrom, sliceFrom + imgTreshold);
+          res.push(clampedGroup);
+          imgTreshold -= clampedGroup.length;
+        }
+
+        if (imgTreshold <= 0) {
+          break;
+        }
+
+        currentImgInd += g.length;
+      }
+    }
+
+    addGroups(false);
+    if (imgTreshold > 0) {
+      addGroups(true);
+    }
+
+    return res.filter((g) => g.length);
+  }, [images, groupedImages, imageIndex]);
 
   return (
     <div className="tw-grid tw-w-full chela--cull-layout">
@@ -110,26 +161,22 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
       </div>
 
       {/* img thumbnails */}
-      {/* todo: groups */}
-      <div className="tw-h-full tw-flex tw-flex-wrap tw-overflow-hidden tw-gap-x-5 tw-px-4 tw-pb-2">
-        {groupedImages.groups.map((g, groupInd) => (
-          // todo: primary border for active img
+      <div className="tw-h-full tw-flex tw-overflow-hidden tw-gap-x-5 tw-px-4 tw-pb-2">
+        {visibleGroups.map((g, groupInd) => (
           <div
-            className={`tw-h-full tw-flex tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
+            className={`tw-h-full tw-flex tw-flex-shrink-0 tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
               g.length > 1
                 ? "tw-bg-border tw-border-4 tw-border-border-light tw-p-1.5"
                 : "tw-py-2"
             }`}
-            key={groupInd}
+            key={g[0].path}
           >
             {g.map((img, imgInd) => {
-              console.warn(groupInd, imgInd, img);
               return (
                 <PreviewImage
                   image={img}
-                  // todo:
-                  active={false}
-                  key={getImageIndex(imgInd)}
+                  active={images.indexOf(img) === imageIndex}
+                  key={img.path}
                   thumbnail
                   grouped={g.length > 1}
                   className={`g:${groupInd}, img:${imgInd}`}
@@ -138,14 +185,6 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
             })}
           </div>
         ))}
-        {/* {new Array(Math.min(25, images.length)).fill(0).map((_, i) => (
-          <PreviewImage
-            image={images[getImageIndex(imageIndex + i)]}
-            active={i === 0}
-            key={getImageIndex(imageIndex + i)}
-            thumbnail={true}
-          />
-        ))} */}
       </div>
 
       <ProgressBar images={images} />
