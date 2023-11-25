@@ -20,26 +20,34 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [groupedImages]);
 
   // kbd bindings
-  // todo: add tab + tab+Shift & group bindings with shift
   function onKeyDown(ev: KeyboardEvent) {
+    const groupBinding = ev.shiftKey;
+
     if (ev.code === "ArrowLeft") {
       ev.preventDefault();
-      prevImage();
+      prevImage(groupBinding);
     } else if (ev.code === "ArrowRight") {
       ev.preventDefault();
-      nextImage();
+      nextImage(groupBinding);
+    } else if (ev.code === "Tab") {
+      ev.preventDefault();
+      if (ev.shiftKey) {
+        prevImage(false);
+      } else {
+        nextImage(false);
+      }
     } else if (ev.code === "Space") {
       ev.preventDefault();
-      setImgCullState("selected");
-      nextImage();
+      setImgCullState("selected", groupBinding);
+      nextImage(groupBinding);
     } else if (ev.code === "Backspace") {
       ev.preventDefault();
-      setImgCullState("rejected");
-      nextImage();
+      setImgCullState("rejected", false);
+      nextImage(false);
     } else if (ev.code === "Delete") {
       ev.preventDefault();
-      setImgCullState("rejected");
-      prevImage();
+      setImgCullState("rejected", false);
+      prevImage(false);
     }
   }
 
@@ -47,20 +55,42 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
     return mod(index, images.length || 1);
   }
 
-  function moveImageIndex(offset: number) {
-    setImageIndex(mod((imageIndex ?? 0) + offset, images.length));
+  function moveImageIndex(offset: number, group: boolean) {
+    let imgIndex = imageIndex;
+
+    if (group) {
+      // use the group start or end image index
+      // by offsetting that the selected image moves to the next/previous group
+      imgIndex =
+        offset > 0
+          ? selectedGroupIndices.endImageIndex
+          : selectedGroupIndices.startImageIndex;
+    }
+
+    console.warn(imageIndex, imgIndex);
+
+    setImageIndex(mod((imgIndex ?? 0) + offset, images.length));
   }
 
-  function nextImage() {
-    moveImageIndex(1);
+  function nextImage(group: boolean) {
+    moveImageIndex(1, group);
   }
 
-  function prevImage() {
-    moveImageIndex(-1);
+  function prevImage(group: boolean) {
+    moveImageIndex(-1, group);
   }
 
-  function setImgCullState(state: CullState) {
+  function setImgCullState(state: CullState, group: boolean) {
     images[imageIndex].state = state;
+
+    if (group) {
+      // set all unculled group imgs to rejected
+      groupedImages.groups[selectedGroupIndices.groupIndex]
+        .filter((img) => img.state === "new")
+        .forEach((img) => {
+          img.state = "rejected";
+        });
+    }
   }
 
   useEffect(() => {
@@ -78,6 +108,38 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [images.length, imageIndex, setTitle]);
 
   // groups
+  interface GroupIndices {
+    groupIndex: number;
+    startImageIndex: number;
+    endImageIndex: number;
+  }
+
+  const imageToGroupIndexMap = useMemo(() => {
+    const res = new Map<number, GroupIndices>();
+    let imgIndex = 0;
+
+    groupedImages.groups.forEach((g, groupIndex) => {
+      const startImageIndex = imgIndex;
+      const endImageIndex = imgIndex + g.length - 1;
+
+      g.forEach(() => {
+        res.set(imgIndex++, {
+          groupIndex,
+          startImageIndex,
+          endImageIndex,
+        });
+      });
+    });
+
+    console.warn(res);
+
+    return res;
+  }, [groupedImages]);
+
+  const selectedGroupIndices = useMemo(() => {
+    return imageToGroupIndexMap.get(imageIndex)!;
+  }, [imageToGroupIndexMap, imageIndex]);
+
   const visibleGroups = useMemo(() => {
     const res: Image[][] = [];
     let imgTreshold = Math.min(25, images.length);
