@@ -77,9 +77,7 @@ pub(super) async fn open_dir(
 
     match dir {
         Some(p) => {
-            let mut images = get_raw_images(&p)
-                .await
-                .map_err(|_| "Failed to get raw paths".to_owned())?;
+            let mut images = get_raw_images(&p).await.map_err(|e| e.to_string())?;
 
             if images.is_empty() {
                 return Err("No images".to_owned());

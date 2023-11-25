@@ -4,9 +4,8 @@ use glob::{glob_with, MatchOptions};
 use std::path::{Path, PathBuf};
 use tokio_stream::StreamExt;
 
-// todo: async?
 pub(crate) async fn get_raw_images(path: &Path) -> anyhow::Result<Vec<Image>> {
-    let glob_pattern = path.join("*.arw");
+    let glob_pattern = path.join("**/*.arw");
     let glob_pattern = glob_pattern
         .to_str()
         .ok_or_else(|| anyhow::anyhow!("path is not valid UTF8"))?;
