@@ -10,6 +10,7 @@ import { useSetAtom } from "jotai";
 import { titleAtom } from "../store/navStore";
 import { invoke } from "@tauri-apps/api";
 import { forgetFnReturn } from "../utils/function";
+import { BoundaryIcon } from "./BoundaryIcon";
 
 export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) {
   const [imageIndex, setImageIndex] = useState(0);
@@ -120,22 +121,24 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [images.length, imageIndex, setTitle]);
 
   // groups
-  interface GroupIndices {
+  interface ImageIndices {
+    imageIndex: number;
     groupIndex: number;
     startImageIndex: number;
     endImageIndex: number;
   }
 
-  const imageToGroupIndexMap = useMemo(() => {
-    const res = new Map<number, GroupIndices>();
+  const imageIndicesMap = useMemo(() => {
+    const res = new Map<Image, ImageIndices>();
     let imgIndex = 0;
 
     groupedImages.groups.forEach((g, groupIndex) => {
       const startImageIndex = imgIndex;
       const endImageIndex = imgIndex + g.length - 1;
 
-      g.forEach(() => {
-        res.set(imgIndex++, {
+      g.forEach((img) => {
+        res.set(img, {
+          imageIndex: imgIndex++,
           groupIndex,
           startImageIndex,
           endImageIndex,
@@ -147,8 +150,8 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [groupedImages]);
 
   const selectedGroupIndices = useMemo(() => {
-    return imageToGroupIndexMap.get(imageIndex)!;
-  }, [imageToGroupIndexMap, imageIndex]);
+    return imageIndicesMap.get(images[imageIndex])!;
+  }, [images, imageIndicesMap, imageIndex]);
 
   const visibleGroups = useMemo(() => {
     const res: Image[][] = [];
@@ -200,12 +203,16 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
         <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
           {/* Previous preview */}
           {images.length >= 3 ? (
-            <PreviewImage
-              image={images[getImageIndex(imageIndex - 1)]}
-              active={false}
-              key={getImageIndex(imageIndex - 1)}
-              thumbnail={false}
-            />
+            imageIndex === 0 ? (
+              <BoundaryIcon start />
+            ) : (
+              <PreviewImage
+                image={images[getImageIndex(imageIndex - 1)]}
+                active={false}
+                key={getImageIndex(imageIndex - 1)}
+                thumbnail={false}
+              />
+            )
           ) : (
             <div></div>
           )}
@@ -220,12 +227,16 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
 
           {/* Next preview */}
           {images.length >= 2 ? (
-            <PreviewImage
-              image={images[getImageIndex(imageIndex + 1)]}
-              active={false}
-              key={getImageIndex(imageIndex + 1)}
-              thumbnail={false}
-            />
+            imageIndex === images.length - 1 ? (
+              <BoundaryIcon />
+            ) : (
+              <PreviewImage
+                image={images[getImageIndex(imageIndex + 1)]}
+                active={false}
+                key={getImageIndex(imageIndex + 1)}
+                thumbnail={false}
+              />
+            )
           ) : (
             <div></div>
           )}
@@ -235,27 +246,32 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
       {/* img thumbnails */}
       <div className="tw-h-full tw-flex tw-overflow-hidden tw-gap-x-5 tw-px-4 tw-pb-2">
         {visibleGroups.map((g, groupInd) => (
-          <div
-            className={`tw-h-full tw-flex tw-flex-shrink-0 tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
-              g.length > 1
-                ? "tw-bg-border tw-border-4 tw-border-border-light tw-p-1.5"
-                : "tw-py-2"
-            }`}
-            key={g[0].path}
-          >
-            {g.map((img, imgInd) => {
-              return (
-                <PreviewImage
-                  image={img}
-                  active={images.indexOf(img) === imageIndex}
-                  key={img.path}
-                  thumbnail
-                  grouped={g.length > 1}
-                  className={`g:${groupInd}, img:${imgInd}`}
-                />
-              );
-            })}
-          </div>
+          <>
+            <div
+              className={`tw-h-full tw-flex tw-flex-shrink-0 tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
+                g.length > 1
+                  ? "tw-bg-border tw-border-4 tw-border-border-light tw-p-1.5"
+                  : "tw-py-2"
+              }`}
+              key={g[0].path}
+            >
+              {g.map((img, imgInd) => {
+                return (
+                  <PreviewImage
+                    image={img}
+                    active={imageIndicesMap.get(img)?.imageIndex === imageIndex}
+                    key={img.path}
+                    thumbnail
+                    grouped={g.length > 1}
+                    className={`g:${groupInd}, img:${imgInd}`}
+                  />
+                );
+              })}
+            </div>
+            {imageIndicesMap.get(g[g.length - 1])?.imageIndex === images.length - 1 ? (
+              <BoundaryIcon thumbnail />
+            ) : undefined}
+          </>
         ))}
       </div>
 
