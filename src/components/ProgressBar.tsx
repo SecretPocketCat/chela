@@ -1,5 +1,5 @@
 import { useMemo, CSSProperties } from "react";
-import { Image } from "../../src-tauri/bindings/Image";
+import { ImageStateMap } from "./CullScreen";
 
 interface ProgressPart {
   className: string;
@@ -7,29 +7,22 @@ interface ProgressPart {
   count: number;
 }
 
-export function ProgressBar({ images }: { images: Image[] }) {
+export function ProgressBar({ stateCounts }: { stateCounts: ImageStateMap }) {
   const progressParts = useMemo(() => {
-    return images.length
-      ? [
-          getProgressPartClass(
-            images.filter((i) => i.state === "selected").length,
-            "tw-bg-positive",
-            "tw-text-dark",
-          ),
-          getProgressPartClass(
-            images.filter((i) => i.state === "rejected").length,
-            "tw-bg-negative",
-            "tw-text-dark",
-          ),
-          getProgressPartClass(
-            images.filter((i) => i.state === "new").length,
-            "tw-bg-border",
-          ),
-        ]
-      : [];
-    // todo: optimize the deep compare
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(images)]);
+    return [
+      getProgressPartClass(
+        stateCounts.get("selected") ?? 0,
+        "tw-bg-positive",
+        "tw-text-dark",
+      ),
+      getProgressPartClass(
+        stateCounts.get("rejected") ?? 0,
+        "tw-bg-negative",
+        "tw-text-dark",
+      ),
+      getProgressPartClass(stateCounts.get("new") ?? 0, "tw-bg-border"),
+    ];
+  }, [stateCounts]);
 
   function getProgressPartClass(
     count: number,

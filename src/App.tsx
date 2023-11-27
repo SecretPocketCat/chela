@@ -62,6 +62,17 @@ export function App() {
     }
   }
 
+  // culling done
+  function onCullFinished() {
+    setImageGroups(undefined);
+    toast({
+      status: "success",
+      title: "Done",
+      isClosable: true,
+      position: "bottom-right",
+    });
+  }
+
   // conf
   const [appConf, setAppConf] = useAtom(configAtom);
   useAsyncEffect(async () => {
@@ -109,7 +120,7 @@ export function App() {
       {appConf ? (
         <div className="chela--app tw-flex tw-overflow-hidden tw-h-full">
           {groupedImages?.groups.length ? (
-            <CullScreen groupedImages={groupedImages} />
+            <CullScreen groupedImages={groupedImages} onCullFinished={onCullFinished} />
           ) : (
             <div className="tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center">
               <Button

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { mod } from "../utils/math";
 import { GroupedImages } from "../../src-tauri/bindings/GroupedImages";
 import { CulledImages } from "../../src-tauri/bindings/CulledImages";
@@ -11,8 +11,17 @@ import { titleAtom } from "../store/navStore";
 import { invoke } from "@tauri-apps/api";
 import { forgetFnReturn } from "../utils/function";
 import { BoundaryIcon } from "./BoundaryIcon";
+import { FinishCullDialog } from "./FinishCullDialog";
 
-export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) {
+export type ImageStateMap = Map<CullState, number>;
+
+export function CullScreen({
+  groupedImages,
+  onCullFinished,
+}: {
+  groupedImages: GroupedImages;
+  onCullFinished: () => void;
+}) {
   const [imageIndex, setImageIndex] = useState(0);
 
   useEffect(() => {
@@ -24,7 +33,13 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
   }, [groupedImages]);
 
   // kbd bindings
+  const [disableCullBindings, setDisableCullBindings] = useState(false);
+
   async function onKeyDown(ev: KeyboardEvent) {
+    if (disableCullBindings) {
+      return;
+    }
+
     const groupBinding = ev.shiftKey;
 
     if (ev.code === "ArrowLeft") {
@@ -35,6 +50,14 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
       nextImage(groupBinding);
     } else if (ev.code === "Tab") {
       ev.preventDefault();
+      if (ev.shiftKey) {
+        prevImage(false);
+      } else {
+        nextImage(false);
+      }
+    } else if (ev.code === "Escape") {
+      ev.preventDefault();
+      await setImgCullState("new", false);
       if (ev.shiftKey) {
         prevImage(false);
       } else {
@@ -197,6 +220,16 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
     return res.filter((g) => g.length);
   }, [images, groupedImages, imageIndex]);
 
+  // progress
+  const stateCounts = useMemo<ImageStateMap>(() => {
+    return images.reduce((map, img) => {
+      map.set(img.state, (map.get(img.state) ?? 0) + 1);
+      return map;
+    }, new Map<CullState, number>());
+    // todo: optimize the deep compare
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(images)]);
+
   return (
     <div className="tw-grid tw-w-full chela--cull-layout">
       <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4">
@@ -246,14 +279,13 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
       {/* img thumbnails */}
       <div className="tw-h-full tw-flex tw-overflow-hidden tw-gap-x-5 tw-px-4 tw-pb-2">
         {visibleGroups.map((g, groupInd) => (
-          <>
+          <Fragment key={g[0].path}>
             <div
               className={`tw-h-full tw-flex tw-flex-shrink-0 tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
                 g.length > 1
                   ? "tw-bg-border tw-border-4 tw-border-border-light tw-p-1.5"
                   : "tw-py-2"
               }`}
-              key={g[0].path}
             >
               {g.map((img, imgInd) => {
                 return (
@@ -271,11 +303,18 @@ export function CullScreen({ groupedImages }: { groupedImages: GroupedImages }) 
             {imageIndicesMap.get(g[g.length - 1])?.imageIndex === images.length - 1 ? (
               <BoundaryIcon thumbnail />
             ) : undefined}
-          </>
+          </Fragment>
         ))}
       </div>
 
-      <ProgressBar images={images} />
+      <ProgressBar stateCounts={stateCounts} />
+
+      <FinishCullDialog
+        stateCounts={stateCounts}
+        cullDirName={groupedImages.dirName}
+        onToggleDialog={setDisableCullBindings}
+        onCullFinished={onCullFinished}
+      />
     </div>
   );
 }

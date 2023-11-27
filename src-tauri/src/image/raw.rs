@@ -20,6 +20,7 @@ pub(crate) async fn get_raw_images(path: &Path) -> anyhow::Result<Vec<Image>> {
     let mut res = Vec::with_capacity(paths.size_hint().0);
     let mut stream = tokio_stream::iter(paths);
 
+    // todo: use join set instead?
     while let Some(p) = stream.next().await {
         let p = p?;
         let preview_path = get_preview_path(&p).ok_or(anyhow!("Failed to get preview path"))?;

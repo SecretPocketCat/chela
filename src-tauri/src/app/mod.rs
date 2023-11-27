@@ -15,6 +15,7 @@ pub(crate) fn run_app() -> tauri::Result<()> {
             commands::get_config,
             commands::open_dir,
             commands::cull_images,
+            commands::finish_culling,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

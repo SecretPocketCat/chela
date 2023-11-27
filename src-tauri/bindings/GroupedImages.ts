@@ -3,4 +3,5 @@ import type { Image } from "./Image";
 
 export interface GroupedImages {
   groups: Array<Array<Image>>;
+  dirName: string;
 }

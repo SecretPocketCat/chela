@@ -1,7 +1,8 @@
 #![allow(clippy::used_underscore_binding)] // tauri commands fail this lint
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+use chrono::Datelike;
 use tokio::sync::RwLock;
 
 use super::state::AppState;
@@ -21,6 +22,7 @@ pub(super) struct AppConfig {
 #[ts(export)]
 pub(super) struct GroupedImages {
     groups: Vec<Vec<Image>>,
+    dir_name: String,
 }
 
 #[derive(Deserialize, TS)]
@@ -59,6 +61,95 @@ pub(super) async fn cull_images(culled: CulledImages) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub(super) async fn finish_culling(
+    app_state: tauri::State<'_, AppState>,
+    edit_dir: String,
+) -> Result<(), String> {
+    let dir_path = app_state
+        .dir()
+        .lock()
+        .await
+        .clone()
+        .ok_or_else(|| "Dir not selected".to_owned())?;
+
+    let imgs = get_raw_images(&dir_path).await.map_err(|e| e.to_string())?;
+
+    if imgs.is_empty() {
+        return Err("No images to process".to_owned());
+    }
+
+    // check all imgs have state
+    if imgs.iter().any(|img| img.state == CullState::New) {
+        return Err("Some images are not processed".to_owned());
+    }
+
+    let min_created = imgs
+        .iter()
+        .min_by(|a, b| a.created.cmp(&b.created))
+        .expect("There's at least 1 img")
+        .created
+        .date_naive();
+
+    // todo: config
+    let mut edit_root = PathBuf::from_str("D:\\Photos\\Edit").map_err(|e| e.to_string())?;
+    // year
+    edit_root.push(min_created.year().to_string());
+    // quarter
+    edit_root.push(format!("Q{}", min_created.month() / 4 + 1));
+    // named dir
+    edit_root.push(edit_dir.clone());
+
+    let mut task_set = tokio::task::JoinSet::new();
+
+    for img in imgs {
+        let cull_meta = read_cull_meta_or_default(&img.preview_path.with_extension(META_EXT)).await;
+
+        match cull_meta.cull_state {
+            // already handled above
+            CullState::New => {}
+            // move accepted imgs to an edit folder
+            CullState::Selected => {
+                let to = edit_root.join(
+                    img.path
+                        .file_name()
+                        .ok_or_else(|| format!("Invalid filename {:?}", img.path))?,
+                );
+
+                task_set.spawn(async move {
+                    tokio::fs::create_dir_all(
+                        &to.parent().ok_or_else(|| "Invalid path".to_owned())?,
+                    )
+                    .await
+                    .map_err(|e| e.to_string())?;
+
+                    tokio::fs::rename(img.path, to)
+                        .await
+                        .map_err(|e| e.to_string())
+                });
+            }
+            // trash rejected imgs
+            CullState::Rejected => {
+                trash::delete(&img.path).map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    // wait for async FS changes
+    while let Some(res) = task_set.join_next().await {
+        let _ = res.map_err(|e| e.to_string())?;
+    }
+
+    // delete dir (incl. cull meta and previews)
+    tokio::fs::remove_dir_all(&dir_path)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    app_state.dir().lock().await.take();
+
+    Ok(())
+}
+
 // the cmd has to be is async to start on a different thread
 // blocking file dalog would otherwise block main thread
 #[tauri::command]
@@ -82,6 +173,9 @@ pub(super) async fn open_dir(
             if images.is_empty() {
                 return Err("No images".to_owned());
             }
+
+            // set dir
+            *app_state.dir().lock().await = Some(p.clone());
 
             // sort by creation
             images.sort_by(|a, b| a.created.cmp(&b.created));
@@ -134,7 +228,15 @@ pub(super) async fn open_dir(
                 groups.push(curr_group);
             }
 
-            Ok(GroupedImages { groups })
+            Ok(GroupedImages {
+                groups,
+                dir_name: p
+                    .file_name()
+                    .expect("Path is valid")
+                    .to_str()
+                    .expect("Path has a valid directory")
+                    .to_owned(),
+            })
         }
         None => Err("Dialog was closed".to_owned()),
     }
