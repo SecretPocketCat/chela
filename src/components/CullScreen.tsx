@@ -24,13 +24,13 @@ export function CullScreen({
 }) {
   const [imageIndex, setImageIndex] = useState(0);
 
-  useEffect(() => {
-    setImageIndex(0);
-  }, [groupedImages]);
-
   const images = useMemo(() => {
     return groupedImages.groups.flat();
   }, [groupedImages]);
+
+  useEffect(() => {
+    setImageIndex(images.findIndex((i) => i.state === "new") ?? 0);
+  }, [images]);
 
   // kbd bindings
   const [disableCullBindings, setDisableCullBindings] = useState(false);
