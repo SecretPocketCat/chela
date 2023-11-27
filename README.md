@@ -1,7 +1,11 @@
-# Tauri + React + Typescript
+# Chela - a photo culling app
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+This's just for my personal workflow, not a general app, so some stuff is hard-coded (eg. a layout for a 21:9 monitor). I'm also building this to work on my rust skills and to try out react.
 
-## Recommended IDE Setup
+## Stack
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- Tauri
+- React (TS)
+- axum (to serve previews)  
+
+![Culling](./assets/chela_readme.gif)
