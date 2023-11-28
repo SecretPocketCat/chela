@@ -29,8 +29,36 @@ export function CullScreen({
   }, [groupedImages]);
 
   useEffect(() => {
+    setUnprocessedIndex(false);
     setImageIndex(images.findIndex((i) => i.state === "new") ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
+
+  function setUnprocessedIndex(back: boolean) {
+    setImageIndex(getUnprocessedIndex(back));
+  }
+
+  function getUnprocessedIndex(back: boolean) {
+    // use 0 index to wrap
+
+    if (back) {
+      for (let i = imageIndex - 1; i > -imageIndex; i--) {
+        const imgInd = getImageIndex(i);
+        const img = images[imgInd];
+        if (img.state === "new") {
+          return imgInd;
+        }
+      }
+    } else {
+      const fromIndices = imageIndex === 0 ? [0] : [imageIndex, 0];
+      for (let fromInd = 0; fromInd < fromIndices.length; fromInd++) {
+        const from = fromIndices[fromInd];
+        return images.findIndex((img, i) => i > from && img.state === "new") ?? 0;
+      }
+    }
+
+    return 0;
+  }
 
   // kbd bindings
   const [disableCullBindings, setDisableCullBindings] = useState(false);
@@ -51,9 +79,9 @@ export function CullScreen({
     } else if (ev.code === "Tab") {
       ev.preventDefault();
       if (ev.shiftKey) {
-        prevImage(false);
+        setUnprocessedIndex(true);
       } else {
-        nextImage(false);
+        setUnprocessedIndex(false);
       }
     } else if (ev.code === "Escape") {
       ev.preventDefault();
@@ -69,11 +97,11 @@ export function CullScreen({
       nextImage(groupBinding);
     } else if (ev.code === "Backspace") {
       ev.preventDefault();
-      await setImgCullState("rejected", false);
+      await setImgCullState("rejected", groupBinding);
       nextImage(false);
     } else if (ev.code === "Delete") {
       ev.preventDefault();
-      await setImgCullState("rejected", false);
+      await setImgCullState("rejected", groupBinding);
       prevImage(false);
     }
   }
