@@ -98,11 +98,11 @@ export function CullScreen({
     } else if (ev.code === "Backspace") {
       ev.preventDefault();
       await setImgCullState("rejected", groupBinding);
-      nextImage(false);
+      nextImage(groupBinding);
     } else if (ev.code === "Delete") {
       ev.preventDefault();
       await setImgCullState("rejected", groupBinding);
-      prevImage(false);
+      prevImage(groupBinding);
     }
   }
 
