@@ -70,12 +70,14 @@ export function CullScreen({
       return;
     }
 
+    console.warn(ev.code);
+
     const groupBinding = ev.shiftKey;
 
-    if (ev.code === "ArrowLeft") {
+    if (["ArrowLeft", "KeyN"].includes(ev.code)) {
       ev.preventDefault();
       prevImage(groupBinding);
-    } else if (ev.code === "ArrowRight") {
+    } else if (["ArrowRight", "KeyO"].includes(ev.code)) {
       ev.preventDefault();
       nextImage(groupBinding);
     } else if (ev.code === "Tab") {
