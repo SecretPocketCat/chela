@@ -24,12 +24,14 @@ import { useEffect, useState, FormEvent, useMemo } from "react";
 export function FinishCullDialog({
   stateCounts,
   cullDirName,
-  onToggleDialog,
+  showDialog,
+  onCloseDialog,
   onCullFinished,
 }: {
   stateCounts: ImageStateMap;
   cullDirName: string;
-  onToggleDialog: (show: boolean) => void;
+  showDialog: boolean;
+  onCloseDialog: () => void;
   onCullFinished: () => void;
 }) {
   const toast = useToast();
@@ -42,7 +44,7 @@ export function FinishCullDialog({
       await invoke("finish_culling", {
         editDir,
       });
-      closeFinishingCull();
+      closeDialog();
       onCullFinished();
     } catch (err) {
       if (typeof err === "string") {
@@ -57,21 +59,7 @@ export function FinishCullDialog({
     }
   });
 
-  const {
-    isOpen: isFinishingCullOpen,
-    onOpen: openFinishingCull,
-    onClose: closeFinishingCull,
-  } = useDisclosure();
-
-  useEffect(() => {
-    if (!stateCounts.get("new")) {
-      openFinishingCull();
-    }
-  }, [stateCounts, openFinishingCull]);
-
-  useEffect(() => {
-    onToggleDialog(isFinishingCullOpen);
-  }, [isFinishingCullOpen, onToggleDialog]);
+  const { onClose: closeDialog } = useDisclosure();
 
   // form
   const [editDir, setEditDir] = useState(cullDirName);
@@ -87,12 +75,12 @@ export function FinishCullDialog({
 
   return (
     <Modal
-      isOpen={isFinishingCullOpen}
-      onClose={closeFinishingCull}
+      isOpen={showDialog}
+      onClose={() => {}}
       motionPreset="slideInBottom"
       isCentered
       closeOnOverlayClick={false}
-      closeOnEsc={false}
+      onEsc={onCloseDialog}
     >
       <ModalOverlay />
       <ModalContent className="tw-p-2 tw-pb-6">

@@ -12,6 +12,7 @@ import { invoke } from "@tauri-apps/api";
 import { forgetFnReturn } from "../utils/function";
 import { BoundaryIcon } from "./BoundaryIcon";
 import { FinishCullDialog } from "./FinishCullDialog";
+import { useToast } from "@chakra-ui/react";
 
 export type ImageStateMap = Map<CullState, number>;
 
@@ -22,6 +23,7 @@ export function CullScreen({
   groupedImages: GroupedImages;
   onCullFinished: () => void;
 }) {
+  const toast = useToast();
   const [imageIndex, setImageIndex] = useState(0);
 
   const images = useMemo(() => {
@@ -86,11 +88,6 @@ export function CullScreen({
     } else if (ev.code === "Escape") {
       ev.preventDefault();
       await setImgCullState("new", false);
-      if (ev.shiftKey) {
-        prevImage(false);
-      } else {
-        nextImage(false);
-      }
     } else if (ev.code === "Space") {
       ev.preventDefault();
       await setImgCullState("selected", groupBinding);
@@ -103,6 +100,20 @@ export function CullScreen({
       ev.preventDefault();
       await setImgCullState("rejected", groupBinding);
       prevImage(groupBinding);
+    } else if (ev.code === "Enter") {
+      ev.preventDefault();
+
+      if (finished) {
+        setShowFinishDialog(true);
+      } else {
+        toast({
+          status: "error",
+          title: "Not done yet",
+          description: `${stateCounts.get("new")} imgs are not processed`,
+          isClosable: true,
+          position: "bottom-right",
+        });
+      }
     }
   }
 
@@ -258,6 +269,26 @@ export function CullScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(images)]);
 
+  // finish dialog
+  const [showFinishDialog, setShowFinishDialog] = useState(false);
+
+  useEffect(() => {
+    setDisableCullBindings(showFinishDialog);
+  }, [showFinishDialog]);
+
+  const finished = useMemo(() => !stateCounts.get("new"), [stateCounts]);
+
+  useEffect(() => {
+    if (finished) {
+      toast({
+        status: "success",
+        title: "Culling done",
+        isClosable: true,
+        position: "bottom-right",
+      });
+    }
+  }, [finished, toast]);
+
   return (
     <div className="tw-grid tw-w-full chela--cull-layout">
       <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4">
@@ -340,7 +371,8 @@ export function CullScreen({
       <FinishCullDialog
         stateCounts={stateCounts}
         cullDirName={groupedImages.dirName}
-        onToggleDialog={setDisableCullBindings}
+        showDialog={showFinishDialog}
+        onCloseDialog={() => setShowFinishDialog(false)}
         onCullFinished={onCullFinished}
       />
     </div>
