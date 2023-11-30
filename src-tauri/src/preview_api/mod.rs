@@ -1,23 +1,27 @@
 use crate::image::PreviewMap;
 use axum::{
     routing::{get, IntoMakeService},
-    Router, Server,
+    serve::Serve,
+    Router,
 };
-use hyper::server::conn::AddrIncoming;
 use std::net::SocketAddr;
 
 mod health;
 mod preview;
 mod state;
 
-pub(crate) fn get_preview_api_server(
+pub(crate) async fn get_preview_api_server(
     previews: PreviewMap,
-) -> Server<AddrIncoming, IntoMakeService<Router>> {
+) -> (SocketAddr, Serve<IntoMakeService<Router>, Router>) {
     let app = Router::new()
         .route("/", get(health::health))
         .route("/preview", get(preview::preview))
         .with_state(state::PreviewApiState::new(previews));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 0));
-    Server::bind(&addr).serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+
+    (
+        listener.local_addr().unwrap(),
+        axum::serve(listener, app.into_make_service()),
+    )
 }

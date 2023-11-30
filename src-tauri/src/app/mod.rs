@@ -37,17 +37,15 @@ pub(crate) fn run_app() -> tauri::Result<()> {
             // preview API
             let app_handle = app.handle();
             tauri::async_runtime::spawn(async move {
-                let preview_server = preview_api::get_preview_api_server(Arc::clone(&previews));
+                let (address, preview_server) =
+                    preview_api::get_preview_api_server(Arc::clone(&previews)).await;
 
-                println!(
-                    "Preview API: http://localhost:{}",
-                    preview_server.local_addr().port()
-                );
+                println!("Preview API: http://localhost:{}", address.port());
 
                 app_handle.manage(state::AppState::new(
                     Arc::clone(&previews),
                     preview_processing_tx,
-                    preview_server.local_addr().to_string(),
+                    address.to_string(),
                 ));
 
                 preview_server.await?;

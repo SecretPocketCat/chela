@@ -4,10 +4,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use axum_extra::body::AsyncReadBody;
 use serde::Deserialize;
-use std::{path::PathBuf};
-
-
+use std::path::PathBuf;
 
 #[derive(Deserialize)]
 pub struct QueryParams {
@@ -29,9 +28,7 @@ pub(crate) async fn preview(
                 .await
                 .map_err(|_| StatusCode::NOT_FOUND)?;
 
-            let stream = tokio_util::io::ReaderStream::new(file);
-            let body = axum::body::StreamBody::new(stream);
-
+            let body = AsyncReadBody::new(file);
             let headers = [(hyper::header::CONTENT_TYPE, "image/webp")];
 
             Ok((headers, body).into_response())
