@@ -20,8 +20,8 @@ pub(super) struct AppConfig {
 #[derive(Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
-pub(super) struct GroupedImages {
-    groups: Vec<Vec<Image>>,
+pub(super) struct ImageDir {
+    images: Vec<Image>,
     dir_name: String,
 }
 
@@ -156,7 +156,7 @@ pub(super) async fn finish_culling(
 pub(super) async fn open_dir(
     window: tauri::Window,
     app_state: tauri::State<'_, AppState>,
-) -> Result<GroupedImages, String> {
+) -> Result<ImageDir, String> {
     let dir = tauri::api::dialog::blocking::FileDialogBuilder::default()
         .set_title("Select culled folder")
         // set the parent to force focus on the dialog
@@ -203,33 +203,8 @@ pub(super) async fn open_dir(
                 .await
                 .map_err(|e| e.to_string())?;
 
-            // group images
-            let mut groups = Vec::new();
-            let mut curr_group: Vec<Image> = Vec::new();
-
-            for img in images {
-                match curr_group.last() {
-                    Some(last) => {
-                        // todo: config
-                        if (img.created - last.created).num_milliseconds() > 3000 {
-                            groups.push(curr_group);
-                            curr_group = Vec::new();
-                        }
-
-                        curr_group.push(img);
-                    }
-                    None => {
-                        curr_group.push(img);
-                    }
-                }
-            }
-
-            if !curr_group.is_empty() {
-                groups.push(curr_group);
-            }
-
-            Ok(GroupedImages {
-                groups,
+            Ok(ImageDir {
+                images,
                 dir_name: p
                     .file_name()
                     .expect("Path is valid")

@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { mod } from "../utils/math";
-import { GroupedImages } from "../../src-tauri/bindings/GroupedImages";
+import { ImageDir } from "../../src-tauri/bindings/ImageDir";
 import { CulledImages } from "../../src-tauri/bindings/CulledImages";
 import { PreviewImage } from "./PreviewImage";
 import { ProgressBar } from "./ProgressBar";
@@ -13,53 +13,54 @@ import { forgetFnReturn } from "../utils/function";
 import { BoundaryIcon } from "./BoundaryIcon";
 import { FinishCullDialog } from "./FinishCullDialog";
 import { useToast } from "@chakra-ui/react";
+import { indexOrUndefined } from "../utils/array";
 
 export type ImageStateMap = Map<CullState, number>;
 
 export function CullScreen({
-  groupedImages,
+  imageDir,
   onCullFinished,
 }: {
-  groupedImages: GroupedImages;
+  imageDir: ImageDir;
   onCullFinished: () => void;
 }) {
   const toast = useToast();
   const [imageIndex, setImageIndex] = useState(0);
+  const [showRejected, setShowRejected] = useState(false);
 
   const images = useMemo(() => {
-    return groupedImages.groups.flat();
-  }, [groupedImages]);
+    return imageDir.images.flat();
+  }, [imageDir]);
+
+  function isImageVisible(image: Image, showRejected: boolean) {
+    return showRejected || image.state !== "rejected";
+  }
+
+  const visibleImages = showRejected
+    ? images
+    : images.filter((i) => isImageVisible(i, showRejected));
+
+  const visibleImageIndex = useMemo(() => {
+    const index = indexOrUndefined(visibleImages.indexOf(images[imageIndex]));
+    if (index != undefined) {
+      return index;
+    } else {
+      const nextVisibleImg = images.find(
+        (img, i) => isImageVisible(img, showRejected) && i >= imageIndex,
+      );
+      return nextVisibleImg ? visibleImages.indexOf(nextVisibleImg) : 0;
+    }
+  }, [imageIndex, images, visibleImages, showRejected]);
 
   useEffect(() => {
-    setUnprocessedIndex(false);
+    setUnprocessedIndex();
     setImageIndex(images.findIndex((i) => i.state === "new") ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
-  function setUnprocessedIndex(back: boolean) {
-    setImageIndex(getUnprocessedIndex(back));
-  }
-
-  function getUnprocessedIndex(back: boolean) {
-    // use 0 index to wrap
-
-    if (back) {
-      for (let i = imageIndex - 1; i > -imageIndex; i--) {
-        const imgInd = getImageIndex(i);
-        const img = images[imgInd];
-        if (img.state === "new") {
-          return imgInd;
-        }
-      }
-    } else {
-      const fromIndices = imageIndex === 0 ? [0] : [imageIndex, 0];
-      for (let fromInd = 0; fromInd < fromIndices.length; fromInd++) {
-        const from = fromIndices[fromInd];
-        return images.findIndex((img, i) => i > from && img.state === "new") ?? 0;
-      }
-    }
-
-    return 0;
+  function setUnprocessedIndex() {
+    const index = images.findIndex((img, i) => i > 0 && img.state === "new") ?? 0;
+    setImageIndex(index);
   }
 
   // kbd bindings
@@ -70,38 +71,33 @@ export function CullScreen({
       return;
     }
 
-    console.warn(ev.code);
-
-    const groupBinding = ev.shiftKey;
-
     if (["ArrowLeft", "KeyN"].includes(ev.code)) {
       ev.preventDefault();
-      prevImage(groupBinding);
+      prevImage();
     } else if (["ArrowRight", "KeyO"].includes(ev.code)) {
       ev.preventDefault();
-      nextImage(groupBinding);
+      nextImage();
     } else if (ev.code === "Tab") {
       ev.preventDefault();
-      if (ev.shiftKey) {
-        setUnprocessedIndex(true);
-      } else {
-        setUnprocessedIndex(false);
-      }
+      setUnprocessedIndex();
     } else if (ev.code === "Escape") {
       ev.preventDefault();
-      await setImgCullState("new", false);
+      await setImgCullState("new");
     } else if (ev.code === "Space") {
       ev.preventDefault();
-      await setImgCullState("selected", groupBinding);
-      nextImage(groupBinding);
+      await setImgCullState("selected");
+      nextImage();
     } else if (ev.code === "Backspace") {
       ev.preventDefault();
-      await setImgCullState("rejected", groupBinding);
-      nextImage(groupBinding);
+      await setImgCullState("rejected");
+      nextImage();
     } else if (ev.code === "Delete") {
       ev.preventDefault();
-      await setImgCullState("rejected", groupBinding);
-      prevImage(groupBinding);
+      const rejected = !showRejected;
+      setShowRejected(rejected);
+      // const currImg = images[imageIndex]
+      // images.filter((i) => isImageVisible(i, rejected));
+      // setImageIndex();
     } else if (ev.code === "Enter") {
       ev.preventDefault();
 
@@ -119,50 +115,33 @@ export function CullScreen({
     }
   }
 
-  function getImageIndex(index: number) {
-    return mod(index, images.length || 1);
+  function getVisibleImageIndex(index: number) {
+    return mod(index, visibleImages.length || 1);
   }
 
-  function moveImageIndex(offset: number, group: boolean) {
-    let imgIndex = imageIndex;
-
-    if (group) {
-      // use the group start or end image index
-      // by offsetting that the selected image moves to the next/previous group
-      imgIndex =
-        offset > 0
-          ? selectedGroupIndices.endImageIndex
-          : selectedGroupIndices.startImageIndex;
-    }
-
-    setImageIndex(mod((imgIndex ?? 0) + offset, images.length));
+  function moveImageIndex(offset: number) {
+    setImageIndex(
+      images.indexOf(
+        visibleImages[mod((visibleImageIndex ?? 0) + offset, visibleImages.length)],
+      ),
+    );
   }
 
-  function nextImage(group: boolean) {
-    moveImageIndex(1, group);
+  function nextImage() {
+    moveImageIndex(1);
   }
 
-  function prevImage(group: boolean) {
-    moveImageIndex(-1, group);
+  function prevImage() {
+    moveImageIndex(-1);
   }
 
-  async function setImgCullState(state: CullState, group: boolean) {
+  async function setImgCullState(state: CullState) {
     const img = images[imageIndex];
     img.state = state;
 
     const culled: CulledImages = {
       [img.previewPath]: state,
     };
-
-    if (group) {
-      // set all unculled group imgs to rejected
-      groupedImages.groups[selectedGroupIndices.groupIndex]
-        .filter((img) => img.state === "new")
-        .forEach((img) => {
-          img.state = "rejected";
-          culled[img.previewPath] = img.state;
-        });
-    }
 
     await invoke<void>("cull_images", {
       culled,
@@ -184,92 +163,11 @@ export function CullScreen({
     setTitle(`${imageIndex + 1}/${images.length}`);
   }, [images.length, imageIndex, setTitle]);
 
-  // groups
-  interface ImageIndices {
-    imageIndex: number;
-    groupIndex: number;
-    startImageIndex: number;
-    endImageIndex: number;
-  }
-
-  const imageIndicesMap = useMemo(() => {
-    const res = new Map<Image, ImageIndices>();
-    let imgIndex = 0;
-
-    groupedImages.groups.forEach((g, groupIndex) => {
-      const startImageIndex = imgIndex;
-      const endImageIndex = imgIndex + g.length - 1;
-
-      g.forEach((img) => {
-        res.set(img, {
-          imageIndex: imgIndex++,
-          groupIndex,
-          startImageIndex,
-          endImageIndex,
-        });
-      });
-    });
-
-    return res;
-  }, [groupedImages]);
-
-  const selectedGroupIndices = useMemo(() => {
-    return imageIndicesMap.get(images[imageIndex])!;
-  }, [images, imageIndicesMap, imageIndex]);
-
-  const visibleGroups = useMemo(() => {
-    const res: Image[][] = [];
-    let imgTreshold = Math.min(25, images.length);
-
-    function addGroups(fill: boolean) {
-      let currentImgInd = 0;
-
-      for (let i = 0; i < groupedImages.groups.length; i++) {
-        const g = groupedImages.groups[i];
-        const imgGroupIndex = imageIndex - currentImgInd;
-        const prevThumbnailsCount = 10;
-
-        if ((!fill && imgGroupIndex < g.length) || (fill && imgGroupIndex >= g.length)) {
-          // limit the group size if the selected image (first group) wouldn't be visible
-          const sliceFrom =
-            res.length == 0
-              ? Math.max(
-                  0,
-                  // show N previous thumbnails from the current group
-                  imgGroupIndex - prevThumbnailsCount,
-                )
-              : 0;
-          // clamp to treshold
-          const clampedGroup = g.slice(sliceFrom, sliceFrom + imgTreshold);
-          res.push(clampedGroup);
-          imgTreshold -= clampedGroup.length;
-        }
-
-        if (imgTreshold <= 0) {
-          break;
-        }
-
-        currentImgInd += g.length;
-      }
-    }
-
-    addGroups(false);
-    if (imgTreshold > 0) {
-      addGroups(true);
-    }
-
-    return res.filter((g) => g.length);
-  }, [images, groupedImages, imageIndex]);
-
   // progress
-  const stateCounts = useMemo<ImageStateMap>(() => {
-    return images.reduce((map, img) => {
-      map.set(img.state, (map.get(img.state) ?? 0) + 1);
-      return map;
-    }, new Map<CullState, number>());
-    // todo: optimize the deep compare
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(images)]);
+  const stateCounts: ImageStateMap = images.reduce((map, img) => {
+    map.set(img.state, (map.get(img.state) ?? 0) + 1);
+    return map;
+  }, new Map<CullState, number>());
 
   // finish dialog
   const [showFinishDialog, setShowFinishDialog] = useState(false);
@@ -296,14 +194,14 @@ export function CullScreen({
       <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4">
         <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
           {/* Previous preview */}
-          {images.length >= 3 ? (
-            imageIndex === 0 ? (
+          {visibleImages.length >= 3 ? (
+            visibleImageIndex < getVisibleImageIndex(visibleImageIndex - 1) ? (
               <BoundaryIcon start />
             ) : (
               <PreviewImage
-                image={images[getImageIndex(imageIndex - 1)]}
+                image={visibleImages[getVisibleImageIndex(visibleImageIndex - 1)]}
                 active={false}
-                key={getImageIndex(imageIndex - 1)}
+                key={getVisibleImageIndex(visibleImageIndex - 1)}
                 thumbnail={false}
               />
             )
@@ -313,21 +211,21 @@ export function CullScreen({
 
           {/* Processed preview */}
           <PreviewImage
-            image={images[getImageIndex(imageIndex)]}
+            image={visibleImages[getVisibleImageIndex(visibleImageIndex)]}
             active={true}
-            key={getImageIndex(imageIndex)}
+            key={getVisibleImageIndex(visibleImageIndex)}
             thumbnail={false}
           />
 
           {/* Next preview */}
           {images.length >= 2 ? (
-            imageIndex === images.length - 1 ? (
+            getVisibleImageIndex(visibleImageIndex + 1) < visibleImageIndex ? (
               <BoundaryIcon />
             ) : (
               <PreviewImage
-                image={images[getImageIndex(imageIndex + 1)]}
+                image={visibleImages[getVisibleImageIndex(visibleImageIndex + 1)]}
                 active={false}
-                key={getImageIndex(imageIndex + 1)}
+                key={getVisibleImageIndex(visibleImageIndex + 1)}
                 thumbnail={false}
               />
             )
@@ -337,42 +235,11 @@ export function CullScreen({
         </div>
       </div>
 
-      {/* img thumbnails */}
-      <div className="tw-h-full tw-flex tw-overflow-hidden tw-gap-x-5 tw-px-4 tw-pb-2">
-        {visibleGroups.map((g, groupInd) => (
-          <Fragment key={g[0].path}>
-            <div
-              className={`tw-h-full tw-flex tw-flex-shrink-0 tw-gap-x-1.5 tw-rounded-md tw-overflow-hidden ${
-                g.length > 1
-                  ? "tw-bg-border tw-border-4 tw-border-border-light tw-p-1.5"
-                  : "tw-py-2"
-              }`}
-            >
-              {g.map((img, imgInd) => {
-                return (
-                  <PreviewImage
-                    image={img}
-                    active={imageIndicesMap.get(img)?.imageIndex === imageIndex}
-                    key={img.path}
-                    thumbnail
-                    grouped={g.length > 1}
-                    className={`g:${groupInd}, img:${imgInd}`}
-                  />
-                );
-              })}
-            </div>
-            {imageIndicesMap.get(g[g.length - 1])?.imageIndex === images.length - 1 ? (
-              <BoundaryIcon thumbnail />
-            ) : undefined}
-          </Fragment>
-        ))}
-      </div>
-
       <ProgressBar stateCounts={stateCounts} />
 
       <FinishCullDialog
         stateCounts={stateCounts}
-        cullDirName={groupedImages.dirName}
+        cullDirName={imageDir.dirName}
         showDialog={showFinishDialog}
         onCloseDialog={() => setShowFinishDialog(false)}
         onCullFinished={onCullFinished}

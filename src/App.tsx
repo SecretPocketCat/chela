@@ -3,7 +3,7 @@ import { useAsyncEffect } from "use-async-effect";
 import { invoke } from "@tauri-apps/api/tauri";
 import { appWindow } from "@tauri-apps/api/window";
 import { AppConfig } from "../src-tauri/bindings/AppConfig";
-import { GroupedImages } from "../src-tauri/bindings/GroupedImages";
+import { ImageDir } from "../src-tauri/bindings/ImageDir";
 import {
   ChakraProvider,
   Button,
@@ -39,7 +39,7 @@ const theme = extendTheme({
 } satisfies Partial<ChakraTheme>);
 
 export function App() {
-  const [groupedImages, setImageGroups] = useState<GroupedImages>();
+  const [imageDir, setImageDir] = useState<ImageDir>();
   const toast = useToast();
 
   // nav
@@ -48,7 +48,7 @@ export function App() {
   // open dir
   async function openDir() {
     try {
-      setImageGroups(await invoke<GroupedImages>("open_dir"));
+      setImageDir(await invoke<ImageDir>("open_dir"));
     } catch (error) {
       if (typeof error === "string") {
         toast({
@@ -64,7 +64,7 @@ export function App() {
 
   // culling done
   function onCullFinished() {
-    setImageGroups(undefined);
+    setImageDir(undefined);
     toast({
       status: "success",
       title: "Done",
@@ -119,8 +119,8 @@ export function App() {
 
       {appConf ? (
         <div className="chela--app tw-flex tw-overflow-hidden tw-h-full">
-          {groupedImages?.groups.length ? (
-            <CullScreen groupedImages={groupedImages} onCullFinished={onCullFinished} />
+          {imageDir?.images.length ? (
+            <CullScreen imageDir={imageDir} onCullFinished={onCullFinished} />
           ) : (
             <div className="tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center">
               <Button
