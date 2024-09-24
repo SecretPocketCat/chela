@@ -13,6 +13,7 @@ pub(crate) fn run_app() -> tauri::Result<()> {
     let previews = Arc::new(tokio::sync::RwLock::new(HashMap::with_capacity(500)));
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::open_dir,

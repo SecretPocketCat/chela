@@ -18,8 +18,8 @@ import { useAtomValue, useAtom } from "jotai";
 import { titleAtom } from "./store/navStore";
 import { configAtom } from "./store/configStore";
 import { IconType } from "react-icons";
-import { useLocalStorage } from "@uidotdev/usehooks";
 import { useErrorToastHandler, useSuccessToast } from "./hooks/toast";
+import { Store } from "tauri-plugin-store-api";
 
 const colors: ChakraTheme["colors"] = {
   transparent: "transparent",
@@ -39,30 +39,48 @@ const theme = extendTheme({
   },
 } satisfies Partial<ChakraTheme>);
 
+const settingsStore = new Store(".settings.dat");
+const settingsKey = "app-settings";
+interface AppSettings {
+  imageDirPath: string | undefined;
+}
+
 export function App() {
   const [imageDir, setImageDir] = useState<ImageDir>();
-  const [imageDirPath, setImageDirPath] = useLocalStorage<string | undefined>("cull-dir");
   const successToast = useSuccessToast();
   const errorToastHandler = useErrorToastHandler();
 
   // nav
   const title = useAtomValue(titleAtom);
 
+  async function getAppSettings() {
+    return settingsStore.get<AppSettings>(settingsKey);
+  }
+
+  async function storeAppSettings(settings: AppSettings) {
+    await settingsStore.set(settingsKey, settings);
+    await settingsStore.save();
+  }
+
   // open dir
   async function openDir() {
     try {
       const imgDir = await invoke<ImageDir>("open_dir_picker");
       setImageDir(imgDir);
-      setImageDirPath(imageDir?.path);
+      await storeAppSettings({
+        imageDirPath: imgDir?.path,
+      });
     } catch (error) {
       errorToastHandler(error, "Could not cull directory");
     }
   }
 
   // culling done
-  function onCullFinished() {
+  async function onCullFinished() {
     setImageDir(undefined);
-    setImageDirPath(undefined);
+    await storeAppSettings({
+      imageDirPath: undefined,
+    });
     successToast("Done");
   }
 
@@ -70,11 +88,12 @@ export function App() {
   const [appConf, setAppConf] = useAtom(configAtom);
   useAsyncEffect(async () => {
     setAppConf(await invoke<AppConfig>("get_config"));
-    if (imageDirPath) {
+    const settings = await getAppSettings();
+    if (settings?.imageDirPath) {
       try {
         setImageDir(
           await invoke<ImageDir>("open_dir", {
-            path: imageDirPath,
+            path: settings.imageDirPath,
           }),
         );
       } catch (e) {
