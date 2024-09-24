@@ -22,6 +22,7 @@ pub(super) struct AppConfig {
 #[ts(export)]
 pub(super) struct ImageDir {
     images: Vec<Image>,
+    path: PathBuf,
     dir_name: String,
 }
 
@@ -92,7 +93,7 @@ pub(super) async fn finish_culling(
         .date_naive();
 
     // todo: config
-    let mut edit_root = PathBuf::from_str("D:\\Photos\\Edit").map_err(|e| e.to_string())?;
+    let mut edit_root = PathBuf::from_str("W:\\Photos\\Edit").map_err(|e| e.to_string())?;
     // year
     edit_root.push(min_created.year().to_string());
     // quarter
@@ -153,7 +154,7 @@ pub(super) async fn finish_culling(
 // the cmd has to be is async to start on a different thread
 // blocking file dalog would otherwise block main thread
 #[tauri::command]
-pub(super) async fn open_dir(
+pub(super) async fn open_dir_picker(
     window: tauri::Window,
     app_state: tauri::State<'_, AppState>,
 ) -> Result<ImageDir, String> {
@@ -167,52 +168,75 @@ pub(super) async fn open_dir(
         .pick_folder();
 
     match dir {
-        Some(p) => {
-            let mut images = get_raw_images(&p).await.map_err(|e| e.to_string())?;
-
-            if images.is_empty() {
-                return Err("No images".to_owned());
-            }
-
-            // set dir
-            *app_state.dir().lock().await = Some(p.clone());
-
-            // sort by creation
-            images.sort_by(|a, b| a.created.cmp(&b.created));
-
-            // reset current previews
-            let mut previews = app_state.previews().write().await;
-            previews.clear();
-            previews.extend(images.iter().map(|img| {
-                (
-                    img.preview_path.clone(),
-                    RwLock::new(if img.preview_path.exists() {
-                        None
-                    } else {
-                        Some(tokio::sync::Notify::new())
-                    }),
-                )
-            }));
-
-            // start gen
-            app_state
-                .gen_previews_tx()
-                .lock()
-                .await
-                .send(images.clone().into())
-                .await
-                .map_err(|e| e.to_string())?;
-
-            Ok(ImageDir {
-                images,
-                dir_name: p
-                    .file_name()
-                    .expect("Path is valid")
-                    .to_str()
-                    .expect("Path has a valid directory")
-                    .to_owned(),
-            })
-        }
+        Some(p) => open_img_dir(p, app_state).await,
         None => Err("Dialog was closed".to_owned()),
     }
+}
+
+#[tauri::command]
+pub(super) async fn open_dir(
+    app_state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<ImageDir, String> {
+    let path: PathBuf = path.into();
+    if !path.is_dir() {
+        return Err(format!("Path '{path:?}' is not a directory"));
+    }
+
+    match path.try_exists() {
+        Ok(true) => open_img_dir(path, app_state).await,
+        Ok(false) => Err(format!("Path '{path:?}' does not exist")),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+async fn open_img_dir(
+    path: PathBuf,
+    app_state: tauri::State<'_, AppState>,
+) -> Result<ImageDir, String> {
+    let mut images = get_raw_images(&path).await.map_err(|e| e.to_string())?;
+
+    if images.is_empty() {
+        return Err("No images".to_owned());
+    }
+
+    // set dir
+    *app_state.dir().lock().await = Some(path.clone());
+
+    // sort by creation
+    images.sort_by(|a, b| a.created.cmp(&b.created));
+
+    // reset current previews
+    let mut previews = app_state.previews().write().await;
+    previews.clear();
+    previews.extend(images.iter().map(|img| {
+        (
+            img.preview_path.clone(),
+            RwLock::new(if img.preview_path.exists() {
+                None
+            } else {
+                Some(tokio::sync::Notify::new())
+            }),
+        )
+    }));
+
+    // start gen
+    app_state
+        .gen_previews_tx()
+        .lock()
+        .await
+        .send(images.clone().into())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(ImageDir {
+        images,
+        dir_name: path
+            .file_name()
+            .expect("Path is valid")
+            .to_str()
+            .expect("Path has a valid directory")
+            .to_owned(),
+        path,
+    })
 }

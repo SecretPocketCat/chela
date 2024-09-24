@@ -11,7 +11,6 @@ import {
   IconButton,
   extendTheme,
   ChakraTheme,
-  useToast,
 } from "@chakra-ui/react";
 import { MdClose, MdMinimize, MdFolder } from "react-icons/md";
 import { CullScreen } from "./components/CullScreen";
@@ -19,6 +18,8 @@ import { useAtomValue, useAtom } from "jotai";
 import { titleAtom } from "./store/navStore";
 import { configAtom } from "./store/configStore";
 import { IconType } from "react-icons";
+import { useLocalStorage } from "@uidotdev/usehooks";
+import { useErrorToastHandler, useSuccessToast } from "./hooks/toast";
 
 const colors: ChakraTheme["colors"] = {
   transparent: "transparent",
@@ -40,7 +41,9 @@ const theme = extendTheme({
 
 export function App() {
   const [imageDir, setImageDir] = useState<ImageDir>();
-  const toast = useToast();
+  const [imageDirPath, setImageDirPath] = useLocalStorage<string | undefined>("cull-dir");
+  const successToast = useSuccessToast();
+  const errorToastHandler = useErrorToastHandler();
 
   // nav
   const title = useAtomValue(titleAtom);
@@ -48,35 +51,36 @@ export function App() {
   // open dir
   async function openDir() {
     try {
-      setImageDir(await invoke<ImageDir>("open_dir"));
+      const imgDir = await invoke<ImageDir>("open_dir_picker");
+      setImageDir(imgDir);
+      setImageDirPath(imageDir?.path);
     } catch (error) {
-      if (typeof error === "string") {
-        toast({
-          status: "error",
-          title: "Could not cull directory",
-          description: error,
-          isClosable: true,
-          position: "bottom-right",
-        });
-      }
+      errorToastHandler(error, "Could not cull directory");
     }
   }
 
   // culling done
   function onCullFinished() {
     setImageDir(undefined);
-    toast({
-      status: "success",
-      title: "Done",
-      isClosable: true,
-      position: "bottom-right",
-    });
+    setImageDirPath(undefined);
+    successToast("Done");
   }
 
   // conf
   const [appConf, setAppConf] = useAtom(configAtom);
   useAsyncEffect(async () => {
     setAppConf(await invoke<AppConfig>("get_config"));
+    if (imageDirPath) {
+      try {
+        setImageDir(
+          await invoke<ImageDir>("open_dir", {
+            path: imageDirPath,
+          }),
+        );
+      } catch (e) {
+        errorToastHandler(e, "Failed to open stored dir");
+      }
+    }
   }, []);
 
   return (

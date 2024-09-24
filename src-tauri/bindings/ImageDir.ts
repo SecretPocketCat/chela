@@ -3,5 +3,6 @@ import type { Image } from "./Image";
 
 export interface ImageDir {
   images: Array<Image>;
+  path: string;
   dirName: string;
 }

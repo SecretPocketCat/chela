@@ -12,8 +12,8 @@ import { invoke } from "@tauri-apps/api";
 import { forgetFnReturn } from "../utils/function";
 import { BoundaryIcon } from "./BoundaryIcon";
 import { FinishCullDialog } from "./FinishCullDialog";
-import { useToast } from "@chakra-ui/react";
 import { indexOrUndefined } from "../utils/array";
+import { useSuccessToast, useErrorToast } from "../hooks/toast";
 
 export type ImageStateMap = Map<CullState, number>;
 
@@ -24,7 +24,8 @@ export function CullScreen({
   imageDir: ImageDir;
   onCullFinished: () => void;
 }) {
-  const toast = useToast();
+  const successToast = useSuccessToast();
+  const errorToast = useErrorToast();
   const [imageIndex, setImageIndex] = useState(0);
   const [showRejected, setShowRejected] = useState(false);
 
@@ -104,13 +105,7 @@ export function CullScreen({
       if (finished) {
         setShowFinishDialog(true);
       } else {
-        toast({
-          status: "error",
-          title: "Not done yet",
-          description: `${stateCounts.get("new")} imgs are not processed`,
-          isClosable: true,
-          position: "bottom-right",
-        });
+        errorToast("Not done yet", `${stateCounts.get("new")} imgs are not processed`);
       }
     }
   }
@@ -180,14 +175,9 @@ export function CullScreen({
 
   useEffect(() => {
     if (finished) {
-      toast({
-        status: "success",
-        title: "Culling done",
-        isClosable: true,
-        position: "bottom-right",
-      });
+      successToast("Culling done");
     }
-  }, [finished, toast]);
+  }, [finished, successToast]);
 
   return (
     <div className="tw-grid tw-w-full chela--cull-layout">

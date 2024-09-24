@@ -9,7 +9,6 @@ import {
   AlertIcon,
   Spinner,
   useDisclosure,
-  useToast,
   Input,
   ModalFooter,
   Button,
@@ -20,6 +19,7 @@ import {
 import { ImageStateMap } from "./CullScreen";
 import { useLoadingStateFn } from "../utils/loading";
 import { useEffect, useState, FormEvent, useMemo } from "react";
+import { useErrorToastHandler } from "../hooks/toast";
 
 export function FinishCullDialog({
   stateCounts,
@@ -34,7 +34,7 @@ export function FinishCullDialog({
   onCloseDialog: () => void;
   onCullFinished: () => void;
 }) {
-  const toast = useToast();
+  const errorToastHandler = useErrorToastHandler();
   const { loading, fn: finishCulling } = useLoadingStateFn(async () => {
     if (!editDirValid) {
       return;
@@ -47,15 +47,7 @@ export function FinishCullDialog({
       closeDialog();
       onCullFinished();
     } catch (err) {
-      if (typeof err === "string") {
-        toast({
-          status: "error",
-          title: "Could not cull directory",
-          description: err,
-          isClosable: true,
-          position: "bottom-right",
-        });
-      }
+      errorToastHandler(err, "Could not cull directory");
     }
   });
 

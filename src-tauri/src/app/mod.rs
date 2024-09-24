@@ -1,4 +1,6 @@
-use tauri::{LogicalSize, Manager};
+#[cfg(debug_assertions)]
+use tauri::LogicalSize;
+use tauri::Manager;
 
 use crate::{image::process_previews, preview_api};
 use std::{collections::HashMap, sync::Arc};
@@ -14,11 +16,13 @@ pub(crate) fn run_app() -> tauri::Result<()> {
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::open_dir,
+            commands::open_dir_picker,
             commands::cull_images,
             commands::finish_culling,
         ])
         .setup(|app| {
-            if cfg!(debug_assertions) {
+            #[cfg(debug_assertions)]
+            {
                 // open devtools (for debug builds only)
                 if let Some(win) = app.windows().values().next() {
                     let height = win.outer_size()?.to_logical(win.scale_factor()?).height;
