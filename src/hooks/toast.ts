@@ -1,4 +1,5 @@
 import { useToast } from "@chakra-ui/react";
+import { useCallback } from "react";
 
 export function useErrorToastHandler() {
   const errorToast = useErrorToast();
@@ -11,7 +12,8 @@ export function useErrorToastHandler() {
 
 export function useErrorToast() {
   const toast = useToast();
-  return (title: string, description: string) => {
+
+  return useCallback((title: string, description: string) => {
     toast({
       status: "error",
       title,
@@ -19,17 +21,20 @@ export function useErrorToast() {
       isClosable: true,
       position: "bottom-right",
     });
-  };
+  }, []);
 }
 
 export function useSuccessToast() {
   const toast = useToast();
-  return (title: string, description?: string) =>
-    toast({
-      status: "success",
-      title,
-      description,
-      isClosable: true,
-      position: "bottom-right",
-    });
+  return useCallback(
+    (title: string, description?: string) =>
+      toast({
+        status: "success",
+        title,
+        description,
+        isClosable: true,
+        position: "bottom-right",
+      }),
+    [],
+  );
 }
