@@ -181,9 +181,9 @@ export function CullScreen({
   }, [finished, successToast]);
 
   return (
-    <div className="tw-grid tw-w-full chela--cull-layout tw-overflow-hidden">
-      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4 tw-overflow-hidden">
-        <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full tw-overflow-hidden">
+    <div className="tw-grid tw-w-full chela--cull-layout">
+      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4">
+        <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
           {/* Previous preview */}
           {visibleImages.length >= 3 ? (
             visibleImageIndex < getVisibleImageIndex(visibleImageIndex - 1) ? (
