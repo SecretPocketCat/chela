@@ -16,6 +16,9 @@ use super::Image;
 pub(crate) type PreviewMap =
     Arc<tokio::sync::RwLock<HashMap<PathBuf, tokio::sync::RwLock<Option<Notify>>>>>;
 
+// https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags#CREATE_NO_WINDOW
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 pub(crate) fn create_preview(raw_img: &Image) -> anyhow::Result<()> {
     if !raw_img.preview_path.exists() {
         let dir = raw_img
@@ -27,32 +30,36 @@ pub(crate) fn create_preview(raw_img: &Image) -> anyhow::Result<()> {
             create_dir_all(dir)?;
         }
 
-        Command::new("magick")
-            .raw_arg(format!(
-                "\"{}\"",
-                raw_img
-                    .path
-                    .to_str()
-                    .ok_or(anyhow!("Invalid raw img path {:?}", raw_img.path))?
-            ))
-            .arg("-auto-orient")
-            .arg("-resize")
-            .arg("2000x1400>")
-            .arg("-limit")
-            .arg("thread")
-            .arg(1.to_string())
-            .raw_arg(format!(
-                "\"{}\"",
-                raw_img
-                    .preview_path
-                    .to_str()
-                    .ok_or(anyhow!("Invalid preview path"))?
-            ))
-            .status()
-            .context(format!(
-                "Failed to generate preview {:?}",
-                raw_img.preview_path
-            ))?;
+        let mut cmd = Command::new("magick");
+        #[cfg(target_os = "windows")]
+        {
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        cmd.raw_arg(format!(
+            "\"{}\"",
+            raw_img
+                .path
+                .to_str()
+                .ok_or(anyhow!("Invalid raw img path {:?}", raw_img.path))?
+        ))
+        .arg("-auto-orient")
+        .arg("-resize")
+        .arg("2000x1400>")
+        .arg("-limit")
+        .arg("thread")
+        .arg(1.to_string())
+        .raw_arg(format!(
+            "\"{}\"",
+            raw_img
+                .preview_path
+                .to_str()
+                .ok_or(anyhow!("Invalid preview path"))?
+        ))
+        .status()
+        .context(format!(
+            "Failed to generate preview {:?}",
+            raw_img.preview_path
+        ))?;
     }
 
     Ok(())
