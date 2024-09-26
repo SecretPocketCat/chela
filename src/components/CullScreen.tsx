@@ -181,9 +181,9 @@ export function CullScreen({
   }, [finished, successToast]);
 
   return (
-    <div className="tw-grid tw-w-full chela--cull-layout">
-      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4">
-        <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full">
+    <div className="tw-grid tw-w-full chela--cull-layout tw-overflow-hidden">
+      <div className="tw-flex tw-w-full tw-h-full tw-justify-center tw-items-center tw-py-3 tw-px-4 tw-overflow-hidden">
+        <div className="chela--imgs-grid tw-relative tw-grid tw-gap-x-8 tw-w-full tw-h-full tw-overflow-hidden">
           {/* Previous preview */}
           {visibleImages.length >= 3 ? (
             visibleImageIndex < getVisibleImageIndex(visibleImageIndex - 1) ? (
@@ -227,9 +227,9 @@ export function CullScreen({
       </div>
 
       <FaChevronDown
-        className="tw-absolute tw-bottom-3 tw-h-8 tw-w-8 tw-text-primary -tw-translate-x-1/ tw-transition-all"
+        className="tw-absolute tw-bottom-3 tw-h-8 tw-w-8 tw-text-primary -tw-translate-x-1/2 tw-transition-all"
         style={{
-          left: `${(imageIndex / imageDir.images.length) * 100}%`,
+          left: `${((imageIndex + 1) / imageDir.images.length) * 100}%`,
         }}
       />
       <ProgressBar stateCounts={stateCounts} />
