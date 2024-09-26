@@ -14,6 +14,7 @@ import { BoundaryIcon } from "./BoundaryIcon";
 import { FinishCullDialog } from "./FinishCullDialog";
 import { indexOrUndefined } from "../utils/array";
 import { useSuccessToast, useErrorToast } from "../hooks/toast";
+import { FaChevronDown } from "react-icons/fa";
 
 export type ImageStateMap = Map<CullState, number>;
 
@@ -225,6 +226,12 @@ export function CullScreen({
         </div>
       </div>
 
+      <FaChevronDown
+        className="tw-absolute tw-bottom-3 tw-h-8 tw-w-8 tw-text-primary -tw-translate-x-1/ tw-transition-all"
+        style={{
+          left: `${(imageIndex / imageDir.images.length) * 100}%`,
+        }}
+      />
       <ProgressBar stateCounts={stateCounts} />
 
       <FinishCullDialog
