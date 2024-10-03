@@ -1,8 +1,9 @@
 use anyhow::{anyhow, Context};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::{
     collections::{HashMap, VecDeque},
     fs::create_dir_all,
-    os::windows::process::CommandExt,
     path::PathBuf,
     process::Command,
     sync::Arc,
@@ -17,6 +18,7 @@ pub(crate) type PreviewMap =
     Arc<tokio::sync::RwLock<HashMap<PathBuf, tokio::sync::RwLock<Option<Notify>>>>>;
 
 // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags#CREATE_NO_WINDOW
+#[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 pub(crate) fn create_preview(raw_img: &Image) -> anyhow::Result<()> {
@@ -30,33 +32,39 @@ pub(crate) fn create_preview(raw_img: &Image) -> anyhow::Result<()> {
             create_dir_all(dir)?;
         }
 
+        let img_path = raw_img
+            .path
+            .to_str()
+            .ok_or(anyhow!("Invalid raw img path {:?}", raw_img.path))?;
+        let preview_path = raw_img
+            .preview_path
+            .to_str()
+            .ok_or(anyhow!("Invalid preview path"))?;
         let mut cmd = Command::new("magick");
         #[cfg(target_os = "windows")]
         {
-            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.creation_flags(CREATE_NO_WINDOW)
+                .raw_arg(format!("\"{}\"", img_path));
         }
-        cmd.raw_arg(format!(
-            "\"{}\"",
-            raw_img
-                .path
-                .to_str()
-                .ok_or(anyhow!("Invalid raw img path {:?}", raw_img.path))?
-        ))
-        .arg("-auto-orient")
-        .arg("-resize")
-        .arg("2000x1400>")
-        .arg("-limit")
-        .arg("thread")
-        .arg(1.to_string())
-        .raw_arg(format!(
-            "\"{}\"",
-            raw_img
-                .preview_path
-                .to_str()
-                .ok_or(anyhow!("Invalid preview path"))?
-        ))
-        .status()
-        .context(format!(
+        #[cfg(not(target_os = "windows"))]
+        {
+            cmd.arg(img_path);
+        }
+        cmd.arg("-auto-orient")
+            .arg("-resize")
+            .arg("2000x1400>")
+            .arg("-limit")
+            .arg("thread")
+            .arg(1.to_string());
+        #[cfg(target_os = "windows")]
+        {
+            cmd.raw_arg(format!("\"{}\"", preview_path))
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            cmd.arg(preview_path);
+        }
+        cmd.status().context(format!(
             "Failed to generate preview {:?}",
             raw_img.preview_path
         ))?;
