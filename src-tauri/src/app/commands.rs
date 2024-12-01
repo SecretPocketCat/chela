@@ -6,7 +6,7 @@ use chrono::Datelike;
 use tokio::sync::RwLock;
 
 use super::state::AppState;
-use crate::image::{get_raw_images, read_cull_meta_or_default, CullState, Image, META_EXT};
+use crate::image::{get_images, read_cull_meta_or_default, CullState, Image, META_EXT};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -74,7 +74,7 @@ pub(super) async fn finish_culling(
         .clone()
         .ok_or_else(|| "Dir not selected".to_owned())?;
 
-    let imgs = get_raw_images(&dir_path).await.map_err(|e| e.to_string())?;
+    let imgs = get_images(&dir_path).await.map_err(|e| e.to_string())?;
 
     if imgs.is_empty() {
         return Err("No images to process".to_owned());
@@ -194,7 +194,7 @@ async fn open_img_dir(
     path: PathBuf,
     app_state: tauri::State<'_, AppState>,
 ) -> Result<ImageDir, String> {
-    let mut images = get_raw_images(&path).await.map_err(|e| e.to_string())?;
+    let mut images = get_images(&path).await.map_err(|e| e.to_string())?;
 
     if images.is_empty() {
         return Err("No images".to_owned());

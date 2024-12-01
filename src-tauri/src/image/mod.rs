@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use ts_rs::TS;
 
 mod cull_meta;
+mod image;
 mod preview;
-mod raw;
 
 #[derive(Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -28,5 +28,5 @@ pub(crate) enum CullState {
 }
 
 pub(crate) use cull_meta::*;
+pub(crate) use image::get_images;
 pub(crate) use preview::{process_previews, PreviewMap};
-pub(crate) use raw::get_raw_images;
